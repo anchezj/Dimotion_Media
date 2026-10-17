@@ -7,7 +7,7 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <header class="site-header">
-      <a class="wordmark" routerLink="/">DIMOTION</a>
+      <a class="wordmark" routerLink="/inicio">DIMOTION</a>
       <nav aria-label="Navegación principal">
         <a routerLink="/portafolio">Portafolio</a>
         <a routerLink="/servicios">Servicios</a>

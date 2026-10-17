@@ -20,10 +20,11 @@ import { AuthService } from '../../core/auth/auth.service';
       <div class="form-panel">
         <h1 id="login-title">Iniciar sesión</h1>
         <p class="form-intro">Entra al portal de clientes Dimotion.</p>
-        @if (!auth.isConfigured()) {
-          <p class="notice" role="status">Configura la URL y la clave pública de Supabase para habilitar el acceso.</p>
-        }
         <form (ngSubmit)="submit()">
+          <label>
+            Cliente
+            <input name="client" type="text" [(ngModel)]="client" autocomplete="organization" placeholder="Cliente">
+          </label>
           <label>
             Usuario
             <input name="email" type="email" [(ngModel)]="email" required autocomplete="username" placeholder="Correo electrónico">
@@ -65,8 +66,7 @@ import { AuthService } from '../../core/auth/auth.service';
     .account-prompt { margin: 0 0 .35rem; text-align: center; }
     .text-link { color: #16b8fa; display: block; font-size: .92rem; text-align: center; text-decoration: none; }
     .text-link:hover { text-decoration: underline; }
-    .notice, .error { border-radius: .5rem; font-size: .88rem; line-height: 1.5; padding: .8rem 1rem; }
-    .notice { background: #20170d; border: 1px solid #6e451a; color: #f6c17d; }
+    .error { border-radius: .5rem; font-size: .88rem; line-height: 1.5; padding: .8rem 1rem; }
     .error { background: #271212; color: #ffaaa2; }
     @media (max-width: 700px) {
       .auth-layout { gap: 2.5rem; grid-template-columns: 1fr; padding: 1rem 0; }
@@ -83,6 +83,7 @@ export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
   readonly error = signal('');
   readonly submitting = signal(false);
+  client = '';
   email = '';
   password = '';
 

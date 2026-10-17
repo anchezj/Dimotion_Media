@@ -12,9 +12,6 @@ import { AuthService } from '../../core/auth/auth.service';
       <div class="form-panel">
         <h1 id="request-title">Solicita tu cuenta</h1>
         <p class="form-intro">Déjanos tus datos y te enviaremos un enlace para verificar tu correo.</p>
-        @if (!auth.isConfigured()) {
-          <p class="notice" role="status">Configura la URL y la clave pública de Supabase para habilitar las solicitudes.</p>
-        }
         <form (ngSubmit)="submit()">
           <label>
             Cliente
@@ -65,8 +62,7 @@ import { AuthService } from '../../core/auth/auth.service';
     .account-prompt { margin: 0 0 .35rem; text-align: center; }
     .text-link { color: #16b8fa; display: block; font-size: .92rem; text-align: center; text-decoration: none; }
     .text-link:hover { text-decoration: underline; }
-    .notice, .error, .success { border-radius: .5rem; font-size: .88rem; line-height: 1.5; padding: .8rem 1rem; }
-    .notice { background: #20170d; border: 1px solid #6e451a; color: #f6c17d; }
+    .error, .success { border-radius: .5rem; font-size: .88rem; line-height: 1.5; padding: .8rem 1rem; }
     .error { background: #271212; color: #ffaaa2; }
     .success { background: #102018; border: 1px solid #285d3f; color: #9ce0b6; }
     .brand-panel { display: grid; justify-items: center; }

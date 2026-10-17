@@ -9,6 +9,7 @@ import { packageRoutes } from './features/packages/package.routes';
 import { publicRoutes } from './features/public/public.routes';
 
 export const routes: Routes = [
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
   ...publicRoutes,
   ...authRoutes,
   ...clientRoutes,
