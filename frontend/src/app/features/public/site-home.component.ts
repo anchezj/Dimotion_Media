@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -8,9 +8,35 @@ import { RouterLink } from '@angular/router';
   template: `
     <div class="home-page">
       <section class="home-hero">
+        <svg
+          class="orbit-lines"
+          viewBox="0 0 1600 620"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+        >
+          <g
+            fill="none"
+            stroke="#df8a1d"
+            stroke-width="1"
+            [attr.transform]="'translate(' + (pointerX() * -0.24) + ' ' + (pointerY() * -0.24) + ')'"
+          >
+            <circle cx="1370" cy="245" r="230"></circle>
+            <circle cx="1370" cy="245" r="360"></circle>
+            <circle cx="1370" cy="245" r="500"></circle>
+          </g>
+          <g
+            fill="none"
+            stroke="#df8a1d"
+            stroke-width="1"
+            [attr.transform]="'translate(' + (pointerX() * 0.42) + ' ' + (pointerY() * 0.42) + ')'"
+          >
+            <circle cx="1370" cy="245" r="300"></circle>
+            <path d="M670 550 A650 650 0 0 0 1500 -80"></path>
+          </g>
+        </svg>
         <div class="hero-copy">
           <p class="eyebrow"><span></span> DIRECCIÓN CREATIVA · PRODUCCIÓN · EDICIÓN</p>
-          <h1>TU MARCA<br>TIENE ALGO QUE DECIR.</h1>
+          <h1>TU MARCA<br>TIENE</h1>
           <p class="hero-slogan">algo que decir.</p>
           <p class="hero-lead">NOSOTROS HACEMOS QUE SE VEA.</p>
           <p class="hero-description">Productora de contenido audiovisual en Bogotá, Colombia.<br>Dirección creativa, producción y edición para marcas que quieren construir una imagen que reconozca y conecte.</p>
@@ -25,7 +51,7 @@ import { RouterLink } from '@angular/router';
           </div>
         </div>
         <a class="hero-visual" href="#trabajo" aria-label="Conoce nuestro contenido audiovisual">
-          <img src="/dimotion-reels.png" alt="Selección de reels y producciones audiovisuales de Dimotion">
+          <img src="/hero-reels-3d.webp" alt="Composición 3D de reels de distintas producciones audiovisuales de Dimotion">
         </a>
       </section>
 
@@ -88,7 +114,29 @@ import { RouterLink } from '@angular/router';
         <span>Historias reales. Marcas reales. Contenido que conecta.</span>
         <a routerLink="/login">PORTAL DE CLIENTES ↗</a>
       </footer>
+      <a
+        class="whatsapp-float"
+        href="https://wa.me/573242340823?text=Hola%20Dimotion%2C%20quiero%20hablar%20sobre%20un%20proyecto."
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Escríbenos por WhatsApp"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20.4 3.6A11.8 11.8 0 0 0 2 17.8L.5 23.5l5.8-1.5a11.8 11.8 0 0 0 5.6 1.4h.1A11.8 11.8 0 0 0 20.4 3.6Zm-8.5 17.8a9.8 9.8 0 0 1-5-1.4l-.4-.2-3.4.9.9-3.3-.2-.4a9.8 9.8 0 1 1 8.1 4.4Zm5.4-7.3c-.3-.2-1.6-.8-1.9-.9-.3-.1-.5-.2-.7.2s-.7.9-.9 1.1c-.2.2-.3.2-.6.1a8 8 0 0 1-2.3-1.4 8.6 8.6 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.6-.1-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.6s1.2 3 1.4 3.2c.2.2 2.3 3.5 5.6 4.9.8.3 1.4.5 1.8.6.8.2 1.5.2 2.1.1.7-.1 1.6-.7 1.9-1.3.2-.6.2-1.1.2-1.3-.1-.2-.3-.3-.6-.5Z"></path>
+        </svg>
+        <span>WHATSAPP</span>
+      </a>
     </div>
   `,
 })
-export class SiteHomeComponent {}
+export class SiteHomeComponent {
+  readonly pointerX = signal(0);
+  readonly pointerY = signal(0);
+
+  @HostListener('window:pointermove', ['$event'])
+  onPointerMove(event: PointerEvent): void {
+    if (event.pointerType !== 'mouse') return;
+    this.pointerX.set((event.clientX / window.innerWidth - 0.5) * 36);
+    this.pointerY.set((event.clientY / window.innerHeight - 0.5) * 24);
+  }
+}
