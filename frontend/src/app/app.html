@@ -1,4 +1,6 @@
-<app-site-header />
-<main class="page">
+@if (showHeader()) {
+  <app-site-header />
+}
+<main class="page" [class.auth-page]="!showHeader()">
   <router-outlet />
 </main>

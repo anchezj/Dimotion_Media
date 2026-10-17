@@ -51,6 +51,26 @@ export class AuthService {
     if (error) throw error;
   }
 
+  async requestAccount(email: string, clientName: string, requesterName: string): Promise<void> {
+    const clientPromise = this.getSupabase();
+    if (!clientPromise) {
+      throw new Error('Configura la URL y la clave pública de Supabase para solicitar una cuenta.');
+    }
+
+    const { error } = await (await clientPromise).auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${globalThis.location.origin}/cliente`,
+        data: {
+          client_name: clientName.trim(),
+          requester_name: requesterName.trim(),
+        },
+      },
+    });
+    if (error) throw error;
+  }
+
   async signOut(): Promise<void> {
     const clientPromise = this.getSupabase();
     if (!clientPromise) {

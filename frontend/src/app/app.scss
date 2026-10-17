@@ -1,1 +1,11 @@
 :host { display: block; min-height: 100vh; }
+
+.page.auth-page {
+  align-items: center;
+  background: #050505;
+  color: #f3f1ed;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: clamp(1rem, 4vw, 3.5rem);
+}
