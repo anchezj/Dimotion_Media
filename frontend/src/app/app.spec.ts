@@ -23,7 +23,8 @@ describe('App', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.wordmark')?.textContent).toContain('DIMOTION');
+    expect(compiled.querySelector('.wordmark img')?.getAttribute('alt')).toBe('Dimotion Media');
+    expect(compiled.querySelector('.site-header nav')).toBeTruthy();
     expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 });

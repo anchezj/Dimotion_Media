@@ -7,9 +7,10 @@ import { clientRoutes } from './features/client/client.routes';
 import { modelRoutes } from './features/models/model.routes';
 import { packageRoutes } from './features/packages/package.routes';
 import { publicRoutes } from './features/public/public.routes';
+import { SiteHomeComponent } from './features/public/site-home.component';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  { path: '', component: SiteHomeComponent },
   ...publicRoutes,
   ...authRoutes,
   ...clientRoutes,

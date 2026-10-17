@@ -1,18 +1,20 @@
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from '../../core/auth/auth.guards';
-import { FeaturePageComponent } from '../../shared/components/feature-page.component';
+import { ClientDashboardComponent } from './client-dashboard.component';
+
+const clientAccess = [authGuard, roleGuard];
 
 export const clientRoutes: Routes = [
   {
     path: 'cliente',
-    component: FeaturePageComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['client'], title: 'Portal del cliente', description: 'Consulta tus campañas y su actividad.', section: 'Cliente' },
+    component: ClientDashboardComponent,
+    canActivate: clientAccess,
+    data: { roles: ['client'] },
   },
   {
     path: 'cliente/campanas',
-    component: FeaturePageComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['client'], title: 'Mis campañas', description: 'Campañas asociadas a las marcas de tu cuenta.', section: 'Cliente' },
+    component: ClientDashboardComponent,
+    canActivate: clientAccess,
+    data: { roles: ['client'] },
   },
 ];
