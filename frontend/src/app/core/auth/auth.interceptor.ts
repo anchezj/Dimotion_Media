@@ -10,7 +10,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   return from(auth.getSession()).pipe(
     switchMap((session) => {
-      if (!session) return next(request);
+      if (!session?.access_token) return next(request);
       return next(request.clone({
         setHeaders: { Authorization: `Bearer ${session.access_token}` },
       }));
