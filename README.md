@@ -55,7 +55,9 @@ Angular queda disponible normalmente en `http://localhost:4200`; Express escucha
 3. Define y aplica las migraciones SQL en tu proyecto Supabase con Supabase CLI o el SQL Editor; este repositorio no incluye migraciones. No hay conexión remota configurada.
 4. Configura la creación de perfiles en Supabase y asígnales el rol `admin` desde un entorno administrativo de confianza; nunca permitas que un usuario cambie su propio rol. Las solicitudes de `/solicitar-cuenta` envían un enlace de verificación con Supabase Auth y guardan el nombre de cliente y solicitante en los metadatos del usuario. La aplicación no crea perfiles ni aprueba solicitudes automáticamente: un administrador debe habilitar el perfil y asignar el rol desde un entorno de confianza.
 
-Sin credenciales, la aplicación Angular y el backend compilan y `GET /api/health` funciona. La autenticación y las rutas de recursos requieren el proyecto Supabase configurado. Las rutas de negocio aún devuelven `501 Not Implemented` explícitamente; el alcance actual es estructura, seguridad base y navegación, no la lógica completa de campañas.
+Sin credenciales, el frontend habilita dos cuentas de demostración locales para probar el flujo: `cliente@dimotion.test` / `Cliente123!` y `admin@dimotion.test` / `Admin123!`. No se necesita URL de Supabase para este modo. Las credenciales están incluidas únicamente para desarrollo local; no son usuarios reales y este mecanismo no debe usarse en producción. Cuando se configuran las credenciales Supabase, el login vuelve a usar Supabase Auth.
+
+Las pantallas de cliente (`/cliente`) y administración (`/admin/campanas`, `/admin/clientes`) incluyen un modo de demostración interactivo y persistido en el `localStorage` del navegador: el calendario agenda campañas y administración permite gestionar etapas, estados, observaciones y clientes. Estos cambios locales no se sincronizan entre navegadores ni con Supabase; las rutas backend de negocio siguen devolviendo `501 Not Implemented` hasta conectar las tablas y políticas RLS del proyecto.
 
 ## Datos y seguridad
 

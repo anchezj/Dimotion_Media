@@ -1,18 +1,23 @@
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from '../../core/auth/auth.guards';
-import { FeaturePageComponent } from '../../shared/components/feature-page.component';
+import { AdminDashboardComponent } from './admin-dashboard.component';
 
 export const adminRoutes: Routes = [
   {
     path: 'admin',
-    component: FeaturePageComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['admin'], title: 'Panel administrativo', description: 'Espacio de gestión de Dimotion.', section: 'Administración' },
+    pathMatch: 'full',
+    redirectTo: 'admin/campanas',
   },
   {
     path: 'admin/campanas',
-    component: FeaturePageComponent,
+    component: AdminDashboardComponent,
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['admin'], title: 'Gestión de campañas', description: 'Administra campañas y actualiza su estado.', section: 'Administración' },
+    data: { roles: ['admin'] },
+  },
+  {
+    path: 'admin/clientes',
+    component: AdminDashboardComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['admin'] },
   },
 ];
