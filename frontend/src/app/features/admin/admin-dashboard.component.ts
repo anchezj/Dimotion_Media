@@ -8,9 +8,9 @@ import { filter } from 'rxjs';
 import {
   CampaignStatus,
   campaignStages,
-  DemoDataService,
-} from '../../core/demo/demo-data.service';
-import type { DemoCampaign, DemoClient } from '../../core/demo/demo-data.service';
+  ManagementDataService,
+} from '../../core/data/management-data.service';
+import type { CampaignRecord, ClientRecord } from '../../core/data/management-data.service';
 
 type AdminView = 'campaigns' | 'clients';
 
@@ -43,7 +43,7 @@ registerLocaleData(localeEsCo);
           }
         </header>
 
-        <p class="demo-note">DATOS DE DEMOSTRACIÓN · Guardados solo en este navegador</p>
+        <p class="demo-note">DATOS CONECTADOS A SUPABASE</p>
         @if (store.storageError()) { <p class="storage-error" role="alert">{{ store.storageError() }}</p> }
         @if (operationError()) { <p class="storage-error" role="alert">{{ operationError() }}</p> }
 
@@ -67,7 +67,7 @@ registerLocaleData(localeEsCo);
                   min="0"
                   [value]="campaign.closedCampaigns ?? 0"
                   [attr.aria-label]="'Campañas cerradas de ' + campaign.clientName"
-                  (change)="updateClosedCount(campaign.id, $event)"
+                  (change)="updateClosedCount(campaign.clientId, $event)"
                 >
                 <div class="status-control">
                   <span class="status" [class.paused]="campaign.status === 'paused'" [class.closed]="campaign.status === 'closed'">
@@ -260,7 +260,7 @@ registerLocaleData(localeEsCo);
   `,
 })
 export class AdminDashboardComponent {
-  readonly store = inject(DemoDataService);
+  readonly store = inject(ManagementDataService);
   readonly stages = campaignStages;
   readonly view = signal<AdminView>('campaigns');
   readonly campaignSearch = signal('');
@@ -286,7 +286,7 @@ export class AdminDashboardComponent {
   clientEmail = '';
 
   constructor() {
-    this.store.initialize();
+    void this.store.loadAdminData().catch(() => undefined);
     this.setViewFromUrl();
     this.router.events
       .pipe(
@@ -300,12 +300,12 @@ export class AdminDashboardComponent {
     return status === 'active' ? 'Activa' : status === 'paused' ? 'En pausa' : 'Cerrada';
   }
 
-  stepCampaign(campaign: DemoCampaign, offset: number): void {
-    this.mutate(() => this.store.setStage(campaign.id, campaign.stageIndex + offset));
+  stepCampaign(campaign: CampaignRecord, offset: number): void {
+    void this.mutate(() => this.store.setStage(campaign.id, campaign.stageIndex + offset));
   }
 
   setStage(campaignId: string, stageIndex: number): void {
-    this.mutate(() => this.store.setStage(campaignId, stageIndex));
+    void this.mutate(() => this.store.setStage(campaignId, stageIndex));
   }
 
   changeStatus(campaignId: string, event: Event): void {
@@ -313,23 +313,23 @@ export class AdminDashboardComponent {
     if (!(target instanceof HTMLSelectElement)) return;
     const value = target.value;
     if (value === 'active' || value === 'paused' || value === 'closed') {
-      this.mutate(() => this.store.setCampaignStatus(campaignId, value));
+      void this.mutate(() => this.store.setCampaignStatus(campaignId, value));
     }
   }
 
   changeObservation(campaignId: string, event: Event): void {
     const target = event.target;
     if (target instanceof HTMLInputElement) {
-      this.mutate(() => this.store.setObservation(campaignId, target.value));
+      void this.mutate(() => this.store.setObservation(campaignId, target.value));
     }
   }
 
-  updateClosedCount(campaignId: string, event: Event): void {
+  updateClosedCount(clientId: string, event: Event): void {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
     const parsed = Number.parseInt(target.value, 10);
     const count = Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
-    this.mutate(() => this.store.setClosedCampaignCount(campaignId, count));
+    void this.mutate(() => this.store.setClosedCampaignCount(clientId, count));
   }
 
   openCreateClient(): void {
@@ -340,7 +340,7 @@ export class AdminDashboardComponent {
     this.showClientForm.set(true);
   }
 
-  editClient(client: DemoClient): void {
+  editClient(client: ClientRecord): void {
     this.formError.set('');
     this.editingClientId.set(client.id);
     this.clientName = client.name;
@@ -348,7 +348,7 @@ export class AdminDashboardComponent {
     this.showClientForm.set(true);
   }
 
-  saveClient(): void {
+  async saveClient(): Promise<void> {
     this.formError.set('');
     const name = this.clientName.trim();
     const email = this.clientEmail.trim();
@@ -358,8 +358,8 @@ export class AdminDashboardComponent {
     }
     try {
       const id = this.editingClientId();
-      if (id) this.store.updateClient(id, { name, email });
-      else this.store.createClient({ name, email });
+      if (id) await this.store.updateClient(id, { name, email });
+      else await this.store.createClient({ name, email });
       this.cancelClientForm();
     } catch (error) {
       this.formError.set(error instanceof Error ? error.message : 'No se pudo guardar el cliente.');
@@ -373,19 +373,19 @@ export class AdminDashboardComponent {
     this.clientEmail = '';
   }
 
-  toggleClient(client: DemoClient): void {
-    this.mutate(() => this.store.toggleClient(client.id));
+  toggleClient(client: ClientRecord): void {
+    void this.mutate(() => this.store.toggleClient(client));
   }
 
-  deleteClient(client: DemoClient): void {
-    if (!globalThis.confirm(`¿Eliminar a ${client.name}? Esta acción no se puede deshacer.`)) return;
-    this.mutate(() => this.store.deleteClient(client.id));
+  deleteClient(client: ClientRecord): void {
+    if (!globalThis.confirm(`¿Eliminar a ${client.name}? No se podrá borrar si tiene campañas asociadas.`)) return;
+    void this.mutate(() => this.store.deleteClient(client.id));
   }
 
-  private mutate(action: () => void): void {
+  private async mutate(action: () => Promise<void>): Promise<void> {
     this.operationError.set('');
     try {
-      action();
+      await action();
     } catch (error) {
       this.operationError.set(error instanceof Error ? error.message : 'No se pudo guardar el cambio.');
     }

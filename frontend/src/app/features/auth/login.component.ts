@@ -20,21 +20,14 @@ import { AuthService } from '../../core/auth/auth.service';
       <div class="form-panel">
         <h1 id="login-title">Iniciar sesión</h1>
         <p class="form-intro">Entra al portal de clientes Dimotion.</p>
-        @if (auth.isDemoMode()) {
-          <aside class="demo-credentials" aria-label="Credenciales de prueba locales">
-            <strong>Acceso local de prueba</strong>
-            <span>Cliente: cliente&#64;dimotion.test / Cliente123!</span>
-            <span>Administrador: admin&#64;dimotion.test / Admin123!</span>
-          </aside>
-        }
         <form (ngSubmit)="submit()">
           <label>
             Cliente
-            <input name="client" type="text" [(ngModel)]="client" autocomplete="organization" placeholder="Cliente">
+            <input name="client" type="text" [(ngModel)]="client" required autocomplete="organization" placeholder="Cliente">
           </label>
           <label>
-            Usuario
-            <input name="email" type="email" [(ngModel)]="email" required autocomplete="username" placeholder="Correo electrónico">
+            Correo electrónico
+            <input name="email" type="email" [(ngModel)]="email" required autocomplete="username" placeholder="nombre@dominio.com">
           </label>
           <label>
             Contraseña
@@ -61,8 +54,6 @@ import { AuthService } from '../../core/auth/auth.service';
     .form-panel { margin: 0 auto; max-width: 360px; width: 100%; }
     h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -.04em; margin: 0 0 .5rem; }
     .form-intro, .account-prompt { color: #c6c2bc; font-size: .92rem; }
-    .demo-credentials { background: #17120c; border: 1px solid #58401f; border-radius: .6rem; color: #d5c6b2; display: grid; font-size: .72rem; gap: .35rem; line-height: 1.45; margin-top: 1rem; padding: .75rem .9rem; }
-    .demo-credentials strong { color: #f3a334; font-size: .76rem; }
     form, label { display: grid; gap: .6rem; }
     form { gap: 1.2rem; margin: 2rem 0 1.4rem; }
     label { color: #e5e0d9; font-size: .86rem; }
@@ -98,10 +89,18 @@ export class LoginComponent {
 
   async submit(): Promise<void> {
     this.error.set('');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim())) {
+      this.error.set('Ingresa el correo completo, incluyendo @ y el dominio.');
+      return;
+    }
     this.submitting.set(true);
     try {
       await this.auth.signIn(this.email.trim(), this.password);
-      const role = await this.auth.getRole();
+      const role = await this.auth.getRole(this.client.trim());
+      if (!role) {
+        await this.auth.signOut();
+        throw new Error('El cliente no corresponde a esta cuenta o la cuenta no tiene un rol activo. Verifica los datos o contacta al administrador de Dimotion.');
+      }
       const defaultRoute = role === 'admin' ? '/admin/campanas' : '/cliente';
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? defaultRoute;
       await this.router.navigateByUrl(returnUrl);

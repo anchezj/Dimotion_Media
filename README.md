@@ -19,7 +19,7 @@ backend/                  API Express + TypeScript
   src/routes/              Registro central de rutas
 ```
 
-La navegación pública no requiere sesión. Las rutas del cliente y de administración están protegidas por sesión de Supabase y rol de perfil (`client` / `admin`). Esas guardas mejoran la navegación, pero la autorización real de datos vive en RLS y debe mantenerse también en el backend.
+La navegación pública no requiere sesión. Las rutas del cliente y de administración están protegidas por sesión de Supabase y los roles `cliente` / `admin` de `usuarios`. Esas guardas mejoran la navegación, pero la autorización real de datos vive en RLS y debe mantenerse también en el backend.
 
 ## Requisitos
 
@@ -36,36 +36,34 @@ Desde la raíz:
 npm run install:all
 ```
 
-En dos terminales, desde la raíz:
+Para iniciar Angular y Express juntos en una terminal:
 
 ```bash
-npm run frontend
-```
-
-```bash
-npm run backend
+npm run dev
 ```
 
 Angular queda disponible normalmente en `http://localhost:4200`; Express escucha en `http://localhost:3000`. La comprobación pública de salud es `GET http://localhost:3000/api/health`. También se puede ejecutar `npm run build` desde la raíz para compilar ambas aplicaciones.
 
+Si prefieres iniciarlos por separado, usa `npm run frontend` y `npm run backend` desde la raíz. Cada aplicación mantiene sus propias dependencias y configuración; no se importan módulos Angular desde Express ni módulos Express desde Angular.
+
 ## Configuración manual
 
-1. Copia `backend/.env.example` a `backend/.env` y define `PORT`, `SUPABASE_URL` y `SUPABASE_ANON_KEY`. No se necesita una clave `service_role` y nunca debe enviarse al navegador.
-2. Copia `frontend/.env.example` como referencia y configura `supabaseUrl` y `supabaseAnonKey` en `frontend/src/environments/environment.ts`. La clave anon/pública es la única clave Supabase que debe aparecer en el frontend; la seguridad depende de RLS.
-3. Define y aplica las migraciones SQL en tu proyecto Supabase con Supabase CLI o el SQL Editor; este repositorio no incluye migraciones. No hay conexión remota configurada.
-4. Configura la creación de perfiles en Supabase y asígnales el rol `admin` desde un entorno administrativo de confianza; nunca permitas que un usuario cambie su propio rol. Las solicitudes de `/solicitar-cuenta` envían un enlace de verificación con Supabase Auth y guardan el nombre de cliente y solicitante en los metadatos del usuario. La aplicación no crea perfiles ni aprueba solicitudes automáticamente: un administrador debe habilitar el perfil y asignar el rol desde un entorno de confianza.
+1. Edita `backend/.env` (archivo local, ignorado por Git). Debe tener `PORT`, `FRONTEND_ORIGIN`, `SUPABASE_URL` y la clave pública/publishable de Supabase. La clave pública del navegador es la única que necesita esta aplicación. No configures ni expongas la clave `service_role`/secret.
+2. Angular CLI no carga `.env` automáticamente. Configura la misma URL y clave pública en `frontend/src/environments/environment.ts` (`supabaseUrl` y `supabaseAnonKey`) para que el navegador pueda usar Supabase Auth. La clave pública está diseñada para usarse en el frontend; la seguridad de los datos depende de RLS.
+3. Usa el único archivo SQL `supabase/setup.sql` en el SQL Editor. Es idempotente: crea o completa `clientes`, `usuarios`, `campanas` e `campana_etapas_historial` sin duplicarlas; configura roles, políticas RLS y triggers. No ejecutes archivos SQL antiguos ni borres tablas: las cuatro tablas forman parte del panel.
+4. Un cliente solicita su cuenta con nombre de cliente, nombre, usuario, correo y contraseña; Supabase Auth guarda la contraseña y envía el correo de confirmación. Una vez confirmado, activa su usuario y cliente. Para el primer administrador, crea una cuenta en Supabase Auth, asigna `nombre_usuario` y ejecuta desde SQL Editor: `update public.usuarios set rol = 'admin', is_active = true where correo_electronico = 'correo-del-admin';`. Tanto administradores como clientes inician sesión con el correo completo y la contraseña. El correo se normaliza a minúsculas antes de autenticar.
+5. Revisa el estado con `select nombre_usuario, correo_electronico, rol, is_active, cliente_id from public.usuarios order by created_at;` y `select id, nombre_cliente, correo_contacto, is_active, campanas_cerradas from public.clientes order by nombre_cliente;`.
 
-Sin credenciales, el frontend habilita dos cuentas de demostración locales para probar el flujo: `cliente@dimotion.test` / `Cliente123!` y `admin@dimotion.test` / `Admin123!`. No se necesita URL de Supabase para este modo. Las credenciales están incluidas únicamente para desarrollo local; no son usuarios reales y este mecanismo no debe usarse en producción. Cuando se configuran las credenciales Supabase, el login vuelve a usar Supabase Auth.
-
-Las pantallas de cliente (`/cliente`) y administración (`/admin/campanas`, `/admin/clientes`) incluyen un modo de demostración interactivo y persistido en el `localStorage` del navegador: el calendario agenda campañas y administración permite gestionar etapas, estados, observaciones y clientes. Estos cambios locales no se sincronizan entre navegadores ni con Supabase; las rutas backend de negocio siguen devolviendo `501 Not Implemented` hasta conectar las tablas y políticas RLS del proyecto.
+Sin URL y clave pública de Supabase, el inicio de sesión y los datos no están disponibles. Los paneles obtienen clientes y campañas desde Express/Supabase; crear y actualizar campañas, etapas, estados, observaciones y clientes persiste en la base y las políticas RLS limitan cada operación.
 
 ## Datos y seguridad
 
-- `profiles.id` referencia `auth.users.id`; no se guardan contraseñas.
-- `brands.owner_profile_id` enlaza marcas con el perfil cliente y `campaigns.brand_id` restringe campañas por marca.
-- `campaigns` referencia opcionalmente paquetes y modelos; el historial guarda cada estado inicial/cambio.
-- Los estados son `payment_received`, `production`, `editing`, `delivery` y `completed`.
-- Clientes pueden leer campañas e historial de sus marcas; solo administradores pueden insertar o cambiar campañas. El historial se registra con trigger.
+- `usuarios.id` referencia `auth.users.id`; las contraseñas se gestionan exclusivamente en Supabase Auth y no se guardan en tablas propias.
+- `usuarios.rol` admite `cliente` y `admin`; los usuarios nuevos empiezan como clientes inactivos y solo un administrador puede activar perfiles o cambiar roles.
+- `usuarios.cliente_id` enlaza al usuario con `clientes.id`; los inicios de sesión usan el correo completo y Supabase Auth compara el correo sin distinguir mayúsculas/minúsculas.
+- `campanas` guarda el cliente, título, fecha, hora, etapa, estado y observaciones que muestran los paneles. `campana_etapas_historial` conserva los cambios de etapa automáticamente.
+- Los clientes solo pueden consultar sus propios datos y campañas activas asociadas; solo administración puede gestionar todos los clientes y modificar etapas/estados. Las operaciones del panel pasan por Express con el token de sesión y RLS aplica el acceso en la base.
+- Los clientes/campañas de demostración anteriores se retiraron del frontend; el servicio elimina del navegador los datos locales antiguos y carga el contenido desde Supabase.
 - Los paquetes activos son legibles públicamente; los modelos y operaciones administrativas están restringidos.
 - Fotografías y videos no se almacenan en PostgreSQL en este MVP. Si se requiere alojarlos, se debe evaluar Supabase Storage con políticas propias.
 

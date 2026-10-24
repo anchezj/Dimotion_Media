@@ -1,28 +1,38 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
-import { DemoDataService } from '../../core/demo/demo-data.service';
+import { ManagementDataService } from '../../core/data/management-data.service';
 import { ClientDashboardComponent } from './client-dashboard.component';
 
 describe('ClientDashboardComponent', () => {
+  const client = {
+    id: 'test-client-id',
+    name: 'Cliente de prueba',
+    email: 'cliente@example.com',
+    active: true,
+    createdAt: '2030-08-01',
+    closedCampaigns: 0,
+  };
+  const store = {
+    campaigns: signal([]),
+    clients: signal([]),
+    storageError: signal(''),
+    currentClient: signal<typeof client | null>(null),
+    loadClientData: vi.fn(async () => {
+      store.currentClient.set(client);
+      return client;
+    }),
+    createCampaign: vi.fn(async () => undefined),
+  };
+
   beforeEach(async () => {
-    localStorage.clear();
+    vi.clearAllMocks();
+    store.currentClient.set(null);
     await TestBed.configureTestingModule({
       imports: [ClientDashboardComponent],
       providers: [
         provideRouter([]),
-        {
-          provide: AuthService,
-          useValue: {
-            getSession: async () => ({
-              user: {
-                id: 'test-client-id',
-                email: 'cliente@example.com',
-                user_metadata: { client_name: 'Cliente de prueba' },
-              },
-            }),
-          },
-        },
+        { provide: ManagementDataService, useValue: store },
       ],
     }).compileComponents();
   });
@@ -38,9 +48,10 @@ describe('ClientDashboardComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.scheduler')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.calendar-grid')).toBeTruthy();
+    expect(store.loadClientData).toHaveBeenCalled();
   });
 
-  it('creates a campaign for the selected date and client', async () => {
+  it('sends the scheduled campaign to the remote data service', async () => {
     const fixture = TestBed.createComponent(ClientDashboardComponent);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -52,9 +63,10 @@ describe('ClientDashboardComponent', () => {
     component.selectedDate.set(new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate()));
     await component.createCampaign();
 
-    const campaign = TestBed.inject(DemoDataService).campaigns()
-      .find((item) => item.title === 'Lanzamiento de temporada');
-    expect(campaign?.clientId).toBe('test-client-id');
-    expect(campaign?.date).toBe(component['dateKey'](component.selectedDate()));
+    expect(store.createCampaign).toHaveBeenCalledWith({
+      title: 'Lanzamiento de temporada',
+      date: component['dateKey'](component.selectedDate()),
+      time: '09:00',
+    });
   });
 });
