@@ -3,8 +3,7 @@ import localeEsCo from '@angular/common/locales/es-CO';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
-import { campaignStages, DemoCampaign, DemoDataService } from '../../core/demo/demo-data.service';
+import { campaignStages, ManagementDataService } from '../../core/data/management-data.service';
 
 registerLocaleData(localeEsCo);
 
@@ -30,7 +29,7 @@ interface CalendarCell {
         </div>
       </header>
 
-      <p class="demo-note">Vista de demostración: las campañas se guardan solo en este navegador.</p>
+      <p class="demo-note">Tus campañas se guardan de forma segura en Supabase.</p>
       @if (store.storageError()) {
         <p class="storage-error" role="alert">{{ store.storageError() }}</p>
       }
@@ -219,8 +218,7 @@ interface CalendarCell {
   `,
 })
 export class ClientDashboardComponent {
-  readonly store = inject(DemoDataService);
-  private readonly auth = inject(AuthService);
+  readonly store = inject(ManagementDataService);
   private readonly today = this.startOfDay(new Date());
   private readonly month = signal(this.firstOfMonth(this.today));
   readonly selectedDate = signal(this.today);
@@ -233,9 +231,9 @@ export class ClientDashboardComponent {
   readonly weekdays = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
   readonly stages = campaignStages;
   readonly clientName = signal('Mi cuenta');
-  readonly myCampaigns = computed(() => this.store.campaigns().filter((campaign) =>
-    campaign.clientId === this.currentUserId() || campaign.clientName === this.clientName(),
-  ));
+  readonly myCampaigns = computed(() =>
+    this.store.campaigns().filter((campaign) => campaign.clientId === this.currentUserId()),
+  );
   readonly currentStageIndex = computed(() => this.myCampaigns()[0]?.stageIndex ?? -1);
   readonly monthLabel = computed(() =>
     new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' }).format(this.month()),
@@ -256,7 +254,6 @@ export class ClientDashboardComponent {
   private currentUserId = signal('');
 
   constructor() {
-    this.store.initialize();
     void this.loadClient();
   }
 
@@ -294,21 +291,14 @@ export class ClientDashboardComponent {
 
     this.saving.set(true);
     try {
-      const session = await this.auth.getSession();
-      if (!session) throw new Error('Tu sesión expiró. Inicia sesión nuevamente.');
-      const metadata = session.user.user_metadata;
-      const savedName = metadata?.['client_name'] ?? metadata?.['requester_name'] ?? metadata?.['full_name'];
-      if (typeof savedName === 'string' && savedName.trim()) this.clientName.set(savedName.trim());
-      const clientName = this.clientName();
-      this.store.createCampaign({
-        clientId: session.user.id,
-        clientName,
-        clientEmail: session.user.email ?? '',
+      const client = this.store.currentClient();
+      if (!client) throw new Error('No se encontró el cliente asociado a tu sesión.');
+      await this.store.createCampaign({
         title: this.campaignTitle.trim(),
         date: this.dateKey(this.selectedDate()),
         time: this.selectedTime,
       });
-      this.currentUserId.set(session.user.id);
+      this.currentUserId.set(client.id);
       this.createdMessage.set(`Campaña agendada para el ${this.selectedDate().toLocaleDateString('es-CO')}.`);
       this.campaignTitle = '';
     } catch (error) {
@@ -320,16 +310,9 @@ export class ClientDashboardComponent {
 
   private async loadClient(): Promise<void> {
     try {
-      const session = await this.auth.getSession();
-      if (!session) return;
-      this.currentUserId.set(session.user.id);
-      const metadata = session.user.user_metadata;
-      const name = metadata?.['client_name'] ?? metadata?.['requester_name'] ?? metadata?.['full_name'];
-      if (typeof name === 'string' && name.trim()) this.clientName.set(name.trim());
-      const email = session.user.email ?? '';
-      if (!this.store.clients().some((client) => client.id === session.user.id)) {
-        this.store.createClientForSession(session.user.id, this.clientName(), email);
-      }
+      const client = await this.store.loadClientData();
+      this.currentUserId.set(client.id);
+      this.clientName.set(client.name);
     } catch (error) {
       console.error('No se pudo cargar la información del cliente.', error);
     }

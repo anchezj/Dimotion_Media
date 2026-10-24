@@ -33,17 +33,40 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
     }
 
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
+      .from('usuarios')
+      .select('rol, is_active, cliente_id')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     if (profileError) throw profileError;
-    if (profile.role !== 'admin' && profile.role !== 'client') {
+    if (
+      !profile?.is_active
+      || (profile.rol !== 'admin' && profile.rol !== 'cliente')
+    ) {
       next(new AppError(403, 'El perfil no tiene un rol autorizado.'));
       return;
     }
 
-    req.authContext = { userId: user.id, role: profile.role };
+    if (profile.rol === 'cliente') {
+      if (!profile.cliente_id) {
+        next(new AppError(403, 'El usuario no está asociado a un cliente activo.'));
+        return;
+      }
+      const { data: client, error: clientError } = await supabase
+        .from('clientes')
+        .select('is_active')
+        .eq('id', profile.cliente_id)
+        .maybeSingle();
+      if (clientError) throw clientError;
+      if (!client?.is_active) {
+        next(new AppError(403, 'El cliente está inactivo.'));
+        return;
+      }
+    }
+
+    req.authContext = {
+      userId: user.id,
+      role: profile.rol === 'admin' ? 'admin' : 'client',
+    };
     next();
   } catch (error) {
     next(error);

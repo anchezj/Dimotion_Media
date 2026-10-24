@@ -22,8 +22,16 @@ import { AuthService } from '../../core/auth/auth.service';
             <input name="requesterName" type="text" [(ngModel)]="requesterName" required maxlength="120" autocomplete="name" placeholder="Nombre completo">
           </label>
           <label>
+            Nombre de usuario
+            <input name="username" type="text" [(ngModel)]="username" required maxlength="120" autocomplete="username" placeholder="Elige tu usuario para iniciar sesión">
+          </label>
+          <label>
             Correo electrónico
             <input name="email" type="email" [(ngModel)]="email" required autocomplete="email" placeholder="nombre@empresa.com">
+          </label>
+          <label>
+            Contraseña
+            <input name="password" type="password" [(ngModel)]="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
           </label>
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
           @if (success()) { <p class="success" role="status">{{ success() }}</p> }
@@ -87,16 +95,24 @@ export class RequestAccountComponent {
   readonly submitting = signal(false);
   clientName = '';
   requesterName = '';
+  username = '';
   email = '';
+  password = '';
 
   async submit(): Promise<void> {
     this.error.set('');
     this.success.set('');
     this.submitting.set(true);
     try {
-      await this.auth.requestAccount(this.email.trim(), this.clientName, this.requesterName);
+      await this.auth.requestAccount(
+        this.email.trim(),
+        this.clientName,
+        this.requesterName,
+        this.username,
+        this.password,
+      );
       this.success.set(
-        'Revisa tu correo y abre el enlace para verificarlo. Si eres nuevo, Dimotion debe habilitar tu perfil antes de que puedas entrar al portal.',
+        'Revisa tu correo y confirma la cuenta. Después, Dimotion debe activar el cliente y usuario para que puedas iniciar sesión.',
       );
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'No fue posible enviar la solicitud.');
