@@ -101,6 +101,10 @@ export class LoginComponent {
         await this.auth.signOut();
         throw new Error('El cliente no corresponde a esta cuenta o la cuenta no tiene un rol activo. Verifica los datos o contacta al administrador de Dimotion.');
       }
+      if (await this.auth.mustChangePassword()) {
+        await this.router.navigateByUrl('/cambiar-contrasena');
+        return;
+      }
       const defaultRoute = role === 'admin' ? '/admin/campanas' : '/cliente';
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? defaultRoute;
       await this.router.navigateByUrl(returnUrl);

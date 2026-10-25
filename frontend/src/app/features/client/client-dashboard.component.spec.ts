@@ -9,6 +9,8 @@ describe('ClientDashboardComponent', () => {
     id: 'test-client-id',
     name: 'Cliente de prueba',
     email: 'cliente@example.com',
+    phone: '',
+    username: 'cliente',
     active: true,
     createdAt: '2030-08-01',
     closedCampaigns: 0,

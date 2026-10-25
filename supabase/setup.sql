@@ -15,7 +15,9 @@ create table if not exists public.clientes (
 
 alter table public.clientes
   add column if not exists correo_contacto text,
+  add column if not exists telefono_contacto text,
   add column if not exists is_active boolean not null default true,
+  add column if not exists deleted_at timestamptz,
   add column if not exists campanas_cerradas integer not null default 0;
 
 create unique index if not exists clientes_nombre_cliente_unique
@@ -28,9 +30,14 @@ create table if not exists public.usuarios (
   correo_electronico text not null unique,
   rol public.app_role not null default 'cliente',
   is_active boolean not null default false,
+  debe_cambiar_contrasena boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.usuarios
+  add column if not exists debe_cambiar_contrasena boolean not null default false,
+  add column if not exists deleted_at timestamptz;
 
 create unique index if not exists usuarios_nombre_cliente_unique
   on public.usuarios (cliente_id, lower(btrim(nombre_usuario)))
@@ -56,6 +63,7 @@ as $$
     where usuario.id = (select auth.uid())
       and usuario.rol = 'admin'
       and usuario.is_active
+      and not usuario.debe_cambiar_contrasena
   );
 $$;
 
@@ -72,6 +80,7 @@ as $$
   where usuario.id = (select auth.uid())
     and usuario.rol = 'cliente'
     and usuario.is_active
+    and not usuario.debe_cambiar_contrasena
     and cliente.is_active
   limit 1;
 $$;
@@ -120,7 +129,7 @@ revoke all on public.usuarios, public.clientes from anon, authenticated;
 grant select on public.usuarios, public.clientes to authenticated;
 grant update (cliente_id, nombre_usuario, rol, is_active) on public.usuarios to authenticated;
 grant insert, delete on public.clientes to authenticated;
-grant update (nombre_cliente, correo_contacto, is_active, campanas_cerradas)
+grant update (nombre_cliente, correo_contacto, telefono_contacto, is_active, campanas_cerradas)
   on public.clientes to authenticated;
 grant usage on type public.app_role to authenticated;
 

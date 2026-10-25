@@ -20,4 +20,10 @@ export const adminRoutes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { roles: ['admin'] },
   },
+  {
+    path: 'admin/usuarios',
+    component: AdminDashboardComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['admin'] },
+  },
 ];

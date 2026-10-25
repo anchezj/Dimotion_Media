@@ -10,9 +10,9 @@ import {
   campaignStages,
   ManagementDataService,
 } from '../../core/data/management-data.service';
-import type { CampaignRecord, ClientRecord } from '../../core/data/management-data.service';
+import type { CampaignRecord, ClientRecord, UserRecord } from '../../core/data/management-data.service';
 
-type AdminView = 'campaigns' | 'clients';
+type AdminView = 'campaigns' | 'clients' | 'users';
 
 registerLocaleData(localeEsCo);
 
@@ -28,6 +28,7 @@ registerLocaleData(localeEsCo);
         <nav aria-label="Administración">
           <a routerLink="/admin/campanas" [class.active]="view() === 'campaigns'">Campañas</a>
           <a routerLink="/admin/clientes" [class.active]="view() === 'clients'">Clientes</a>
+          <a routerLink="/admin/usuarios" [class.active]="view() === 'users'">Usuarios</a>
         </nav>
         <a class="logout" routerLink="/logout">Cerrar sesión</a>
       </aside>
@@ -36,7 +37,7 @@ registerLocaleData(localeEsCo);
         <header class="admin-heading">
           <div>
             <p class="eyebrow">DIMOTION MEDIA · ADMIN</p>
-            <h1>{{ view() === 'campaigns' ? 'Campañas activas' : 'Clientes' }}</h1>
+            <h1>{{ view() === 'campaigns' ? 'Campañas activas' : view() === 'clients' ? 'Clientes' : 'Usuarios' }}</h1>
           </div>
           @if (view() === 'clients') {
             <button class="button button-primary" type="button" (click)="openCreateClient()">Nuevo cliente</button>
@@ -120,7 +121,7 @@ registerLocaleData(localeEsCo);
               <p class="empty-state">No hay campañas que coincidan con la búsqueda.</p>
             }
           </section>
-        } @else {
+        } @else if (view() === 'clients') {
           <label class="search-field">Buscar cliente
             <input type="search" [ngModel]="clientSearch()" (ngModelChange)="clientSearch.set($event)" placeholder="Nombre o correo">
           </label>
@@ -130,9 +131,22 @@ registerLocaleData(localeEsCo);
               <label>Nombre del cliente
                 <input name="name" [(ngModel)]="clientName" required maxlength="120" placeholder="Nombre de empresa o marca">
               </label>
+              <label>Número de contacto
+                <input name="phone" type="tel" [(ngModel)]="clientPhone" required minlength="7" maxlength="25" autocomplete="tel" placeholder="+57 300 123 4567">
+              </label>
               <label>Correo electrónico
                 <input name="email" type="email" [(ngModel)]="clientEmail" required maxlength="254" placeholder="contacto@empresa.com">
               </label>
+              @if (!editingClientId()) {
+                <label>Nombre de usuario
+                  <input name="username" [(ngModel)]="clientUsername" required maxlength="120" autocomplete="off" placeholder="Usuario para iniciar sesión">
+                </label>
+                <p class="form-hint">Generaremos una contraseña temporal y la enviaremos al correo. El cliente deberá cambiarla al iniciar sesión por primera vez.</p>
+              } @else {
+                <label>Nombre de usuario
+                  <input name="username" [(ngModel)]="clientUsername" maxlength="120" autocomplete="off" placeholder="Nombre de usuario">
+                </label>
+              }
               @if (formError()) { <p class="storage-error" role="alert">{{ formError() }}</p> }
               <div class="form-actions">
                 <button class="button button-quiet" type="button" (click)="cancelClientForm()">Cancelar</button>
@@ -146,6 +160,8 @@ registerLocaleData(localeEsCo);
               <article class="client-row">
                 <div class="client-identity">
                   <strong>{{ client.name }}</strong><span>{{ client.email }}</span>
+                  @if (client.phone) { <span>{{ client.phone }}</span> }
+                  @if (client.username) { <span>Usuario: {{ client.username }}</span> }
                   <span class="status" [class.paused]="!client.active"><i></i>{{ client.active ? 'Activo' : 'Inactivo' }}</span>
                 </div>
                 <span class="created-date">{{ client.createdAt | date:'d MMM y':'':'es-CO' }}</span>
@@ -161,13 +177,54 @@ registerLocaleData(localeEsCo);
               <p class="empty-state">No hay clientes que coincidan con la búsqueda.</p>
             }
           </section>
+        } @else {
+          <label class="search-field">Buscar usuario
+            <input type="search" [ngModel]="userSearch()" (ngModelChange)="userSearch.set($event)" placeholder="Nombre, correo o cliente">
+          </label>
+          <label class="user-status-filter">Mostrar
+            <select [ngModel]="userStatusFilter()" (ngModelChange)="userStatusFilter.set($event)">
+              <option value="all">Todos los usuarios</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+              <option value="deleted">Eliminados</option>
+            </select>
+          </label>
+          <section class="client-table" aria-label="Registro de usuarios">
+            <div class="client-table-head user-table-head"><span>USUARIO / CLIENTE</span><span>CORREO Y CONTACTO</span><span>ESTADO</span><span>ACCIONES</span></div>
+            @for (user of filteredUsers(); track user.id) {
+              <article class="client-row user-row">
+                <div class="client-identity">
+                  <strong>{{ user.username }}</strong>
+                  <span>{{ user.clientName }} · {{ user.role === 'admin' ? 'Administrador' : 'Cliente' }}</span>
+                </div>
+                <div class="client-identity">
+                  <span>{{ user.email }}</span>
+                  @if (user.phone) { <span>{{ user.phone }}</span> }
+                </div>
+                <span class="status" [class.paused]="!user.active && !user.deleted" [class.closed]="user.deleted">
+                  <i></i>{{ user.deleted ? 'Eliminado' : user.active ? 'Activo' : 'Inactivo' }}
+                </span>
+                <div class="client-actions">
+                  @if (user.deleted && user.clientId) {
+                    <button class="button button-primary" type="button" (click)="restoreUser(user)">Restaurar</button>
+                  } @else if (user.role === 'cliente' && user.clientId) {
+                    <button class="button" [class.activate]="!user.active" [class.deactivate]="user.active" type="button" (click)="toggleUser(user)">
+                      {{ user.active ? 'Inactivar' : 'Activar' }}
+                    </button>
+                  }
+                </div>
+              </article>
+            } @empty {
+              <p class="empty-state">No hay usuarios en esta categoría.</p>
+            }
+          </section>
         }
       </main>
     </div>
   `,
   styles: `
-    :host { background:#080808; color:#f2f0ed; display:block; min-height:100vh; }
-    .admin-shell { display:grid; grid-template-columns:230px minmax(0,1fr); min-height:100vh; }
+    :host { background:#080808; color:#f2f0ed; display:block; min-height:100vh; min-width:0; width:100%; }
+    .admin-shell { display:grid; grid-template-columns:230px minmax(0,1fr); min-height:100vh; width:100%; }
     .sidebar { background:#160e08; display:flex; flex-direction:column; gap:1.3rem; padding:1.5rem .9rem; }
     .brand { display:none; margin:0 auto 1rem; }
     .brand img { display:block; width:130px; }
@@ -176,7 +233,7 @@ registerLocaleData(localeEsCo);
     .sidebar nav a,.logout { border-radius:.4rem; color:#d9d4ce; padding:.8rem .9rem; text-decoration:none; }
     .sidebar nav a:hover,.sidebar nav a.active { background:#3a1e08; color:#fff; }
     .logout { margin-top:auto; }
-    .admin-main { margin:0 auto; max-width:1500px; padding:2rem clamp(1rem,3vw,3rem); width:100%; }
+    .admin-main { margin:0 auto; max-width:none; min-width:0; padding:2rem clamp(1rem,3vw,3rem); width:100%; }
     .admin-heading { align-items:center; display:flex; justify-content:center; margin:0 0 1.7rem; position:relative; text-align:center; }
     .admin-heading h1 { font-size:1.15rem; font-weight:600; margin:.2rem 0; text-transform:uppercase; }
     .eyebrow { color:#a79d93; font-size:.65rem; letter-spacing:.16em; }
@@ -185,6 +242,8 @@ registerLocaleData(localeEsCo);
     .storage-error { background:#301616; border:1px solid #6f2d2d; border-radius:.4rem; color:#ffc1b8; font-size:.78rem; padding:.7rem 1rem; }
     .search-field { color:#aaa39b; display:grid; font-size:.75rem; gap:.4rem; margin:0 0 .8rem auto; max-width:290px; }
     .search-field input,.observation,.closed-count,.status-control select,.client-form input { background:#100e0c; border:1px solid #342920; border-radius:.35rem; color:#f2f0ed; min-height:37px; outline:none; padding:.55rem .7rem; }
+    .user-status-filter { color:#aaa39b; display:grid; font-size:.75rem; gap:.4rem; margin:0 0 .8rem; max-width:290px; }
+    .user-status-filter select { background:#100e0c; border:1px solid #342920; border-radius:.35rem; color:#f2f0ed; min-height:37px; padding:.55rem .7rem; }
     input:focus,select:focus { border-color:#dc790a; }
     .campaign-table,.client-table { border:1px solid #30251c; border-radius:.55rem; overflow:hidden; }
     .table-header { align-items:center; background:#0c0b0a; color:#b9ada1; display:grid; font-size:.62rem; grid-template-columns:1.1fr .9fr 1.5fr 1.5fr; letter-spacing:.1em; min-height:45px; padding:.6rem 1rem; }
@@ -233,7 +292,10 @@ registerLocaleData(localeEsCo);
     .client-form { background:#100e0c; border:1px solid #49331f; border-radius:.6rem; display:grid; gap:.8rem; margin-bottom:1rem; max-width:440px; padding:1rem; }
     .client-form h2 { font-size:1rem; }
     .client-form label { color:#c3bcb4; display:grid; font-size:.73rem; gap:.35rem; }
+    .form-hint { color:#aaa39b; font-size:.75rem; line-height:1.5; margin:0; }
     .form-actions { display:flex; gap:.5rem; justify-content:flex-end; }
+    .user-table-head,.user-row { grid-template-columns:1.1fr 1.2fr .7fr 1fr; }
+    .user-row { align-items:center; border-top:1px solid #30251c; display:grid; gap:.7rem 1rem; padding:1rem; }
     @media(max-width:900px) {
       .admin-shell { grid-template-columns:175px minmax(0,1fr); }
       .table-header { display:none; }
@@ -247,7 +309,7 @@ registerLocaleData(localeEsCo);
       .sidebar { gap:.7rem; padding:1rem; }
       .brand { display:block; }
       .sidebar-label { display:none; }
-      .sidebar nav { grid-template-columns:repeat(2,1fr); }
+      .sidebar nav { grid-template-columns:repeat(3,1fr); }
       .logout { margin:0; padding:.5rem .9rem; }
       .admin-main { padding-top:1rem; }
       .admin-heading { justify-content:space-between; text-align:left; }
@@ -256,6 +318,7 @@ registerLocaleData(localeEsCo);
       .client-table-head { display:none; }
       .client-row { align-items:flex-start; grid-template-columns:1fr; }
       .client-actions { grid-column:1; }
+      .user-row { align-items:flex-start; grid-template-columns:1fr; }
     }
   `,
 })
@@ -265,6 +328,8 @@ export class AdminDashboardComponent {
   readonly view = signal<AdminView>('campaigns');
   readonly campaignSearch = signal('');
   readonly clientSearch = signal('');
+  readonly userSearch = signal('');
+  readonly userStatusFilter = signal('all');
   private readonly router = inject(Router);
   readonly filteredCampaigns = computed(() => {
     const term = this.campaignSearch().toLocaleLowerCase().trim();
@@ -278,12 +343,26 @@ export class AdminDashboardComponent {
       !term || `${client.name} ${client.email}`.toLocaleLowerCase().includes(term),
     );
   });
+  readonly filteredUsers = computed(() => {
+    const term = this.userSearch().toLocaleLowerCase().trim();
+    const status = this.userStatusFilter();
+    return this.store.users().filter((user) => {
+      const matchesSearch = !term || `${user.username} ${user.email} ${user.clientName} ${user.phone}`.toLocaleLowerCase().includes(term);
+      const matchesStatus = status === 'all'
+        || (status === 'deleted' && user.deleted)
+        || (status === 'active' && user.active && !user.deleted)
+        || (status === 'inactive' && !user.active && !user.deleted);
+      return matchesSearch && matchesStatus;
+    });
+  });
   readonly showClientForm = signal(false);
   readonly editingClientId = signal('');
   readonly formError = signal('');
   readonly operationError = signal('');
   clientName = '';
   clientEmail = '';
+  clientPhone = '';
+  clientUsername = '';
 
   constructor() {
     void this.store.loadAdminData().catch(() => undefined);
@@ -337,6 +416,8 @@ export class AdminDashboardComponent {
     this.editingClientId.set('');
     this.clientName = '';
     this.clientEmail = '';
+    this.clientPhone = '';
+    this.clientUsername = '';
     this.showClientForm.set(true);
   }
 
@@ -345,6 +426,8 @@ export class AdminDashboardComponent {
     this.editingClientId.set(client.id);
     this.clientName = client.name;
     this.clientEmail = client.email;
+    this.clientPhone = client.phone;
+    this.clientUsername = client.username;
     this.showClientForm.set(true);
   }
 
@@ -352,14 +435,16 @@ export class AdminDashboardComponent {
     this.formError.set('');
     const name = this.clientName.trim();
     const email = this.clientEmail.trim();
-    if (!name || !email) {
-      this.formError.set('Completa el nombre y el correo del cliente.');
+    const phone = this.clientPhone.trim();
+    const username = this.clientUsername.trim();
+    if (!name || !email || !phone || (!this.editingClientId() && !username)) {
+      this.formError.set('Completa todos los datos del cliente.');
       return;
     }
     try {
       const id = this.editingClientId();
-      if (id) await this.store.updateClient(id, { name, email });
-      else await this.store.createClient({ name, email });
+      if (id) await this.store.updateClient(id, { name, email, phone, username: username || undefined });
+      else await this.store.createClient({ name, email, phone, username });
       this.cancelClientForm();
     } catch (error) {
       this.formError.set(error instanceof Error ? error.message : 'No se pudo guardar el cliente.');
@@ -371,6 +456,8 @@ export class AdminDashboardComponent {
     this.editingClientId.set('');
     this.clientName = '';
     this.clientEmail = '';
+    this.clientPhone = '';
+    this.clientUsername = '';
   }
 
   toggleClient(client: ClientRecord): void {
@@ -378,8 +465,18 @@ export class AdminDashboardComponent {
   }
 
   deleteClient(client: ClientRecord): void {
-    if (!globalThis.confirm(`¿Eliminar a ${client.name}? No se podrá borrar si tiene campañas asociadas.`)) return;
+    if (!globalThis.confirm(`¿Estás seguro de eliminar al usuario ${client.username} del cliente ${client.name}? Se desactivará el acceso y se conservarán el cliente y sus campañas en la pestaña Usuarios > Eliminados.`)) return;
     void this.mutate(() => this.store.deleteClient(client.id));
+  }
+
+  toggleUser(user: UserRecord): void {
+    void this.mutate(() => this.store.setUserActive(user, !user.active));
+  }
+
+  restoreUser(user: UserRecord): void {
+    const clientId = user.clientId;
+    if (!clientId || !globalThis.confirm(`¿Restaurar el acceso de ${user.username} para ${user.clientName}?`)) return;
+    void this.mutate(() => this.store.restoreClient(clientId));
   }
 
   private async mutate(action: () => Promise<void>): Promise<void> {
@@ -392,6 +489,7 @@ export class AdminDashboardComponent {
   }
 
   private setViewFromUrl(): void {
-    this.view.set(this.router.url.split(/[?#]/, 1)[0].endsWith('/clientes') ? 'clients' : 'campaigns');
+    const currentRoute = this.router.url.split(/[?#]/, 1)[0];
+    this.view.set(currentRoute.endsWith('/clientes') ? 'clients' : currentRoute.endsWith('/usuarios') ? 'users' : 'campaigns');
   }
 }

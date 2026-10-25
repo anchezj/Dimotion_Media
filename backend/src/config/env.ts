@@ -15,4 +15,12 @@ export const env = {
     ?? process.env['SUPABASE_ANON_KEY']
     ?? process.env['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY']
     ?? process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'],
+  supabaseSecretKey: process.env['SUPABASE_SECRET_KEY'] ?? process.env['SUPABASE_SERVICE_ROLE_KEY'],
+  smtpHost: process.env['SMTP_HOST'],
+  smtpPort: Number.parseInt(process.env['SMTP_PORT'] ?? '587', 10),
+  smtpSecure: process.env['SMTP_SECURE'] === 'true',
+  smtpUser: process.env['SMTP_USER'],
+  smtpPassword: process.env['SMTP_PASSWORD'],
+  smtpFrom: process.env['SMTP_FROM'],
+  accountRequestEmail: process.env['DIMOTION_REQUEST_EMAIL'],
 };

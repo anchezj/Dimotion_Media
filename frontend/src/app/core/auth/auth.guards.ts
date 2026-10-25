@@ -19,7 +19,10 @@ export const roleGuard: CanActivateFn = async (route) => {
   const expectedRoles = route.data['roles'] as string[] | undefined;
   try {
     const role = await auth.getRole();
-    if (role && expectedRoles?.includes(role)) return true;
+    if (role && expectedRoles?.includes(role)) {
+      if (await auth.mustChangePassword()) return router.createUrlTree(['/cambiar-contrasena']);
+      return true;
+    }
   } catch (error) {
     console.error('No se pudo verificar el rol del usuario.', error);
   }

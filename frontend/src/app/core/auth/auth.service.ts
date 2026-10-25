@@ -45,13 +45,14 @@ export class AuthService {
 
     const { data, error } = await (await clientPromise)
       .from('usuarios')
-      .select('rol, is_active, cliente_id')
+      .select('rol, is_active, cliente_id, debe_cambiar_contrasena')
       .eq('id', session.user.id)
       .maybeSingle();
     if (error) throw error;
     if (!data?.is_active) return null;
     if (data.rol !== 'admin' && (data.rol !== 'cliente' || !data.cliente_id)) return null;
     if (data.rol === 'admin' && (!clientName || clientName.trim().toLowerCase() === 'admin')) return 'admin';
+    if (data.rol === 'cliente' && data.debe_cambiar_contrasena) return 'client';
     if (!data.cliente_id) return null;
 
     const { data: client, error: clientError } = await (await clientPromise)
@@ -63,6 +64,19 @@ export class AuthService {
     if (!client?.is_active) return null;
     if (clientName && client.nombre_cliente.trim().toLowerCase() !== clientName.trim().toLowerCase()) return null;
     return data.rol === 'admin' ? 'admin' : 'client';
+  }
+
+  async mustChangePassword(): Promise<boolean> {
+    const session = await this.getSession();
+    const clientPromise = this.getSupabase();
+    if (!session || !clientPromise) return false;
+    const { data, error } = await (await clientPromise)
+      .from('usuarios')
+      .select('debe_cambiar_contrasena')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.debe_cambiar_contrasena ?? false;
   }
 
   async signIn(email: string, password: string): Promise<void> {
@@ -86,28 +100,49 @@ export class AuthService {
     email: string,
     clientName: string,
     requesterName: string,
-    username: string,
-    password: string,
+    phone: string,
   ): Promise<void> {
-    const clientPromise = this.getSupabase();
-    if (!clientPromise) {
-      throw new Error('Configura la URL y la clave pública de Supabase para solicitar una cuenta.');
+    let notification: Response;
+    try {
+      notification = await globalThis.fetch(`${environment.apiUrl}/account-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: clientName.trim(),
+          requesterName: requesterName.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+        }),
+      });
+    } catch {
+      throw new Error('No se pudo enviar la solicitud a Dimotion. Inténtalo nuevamente más tarde.');
     }
+    if (!notification.ok) {
+      const body = await notification.json().catch(() => null) as { error?: string } | null;
+      throw new Error(body?.error ?? 'No se pudo enviar la solicitud a Dimotion. Inténtalo nuevamente más tarde.');
+    }
+  }
 
-    const { data, error } = await (await clientPromise).auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: {
-        emailRedirectTo: `${globalThis.location.origin}/cliente`,
-        data: {
-          client_name: clientName.trim(),
-          requester_name: requesterName.trim(),
-          username: username.trim(),
+  async changePassword(password: string): Promise<void> {
+    const session = await this.getSession();
+    if (!session?.access_token) throw new Error('Tu sesión expiró. Inicia sesión nuevamente.');
+    let response: Response;
+    try {
+      response = await globalThis.fetch(`${environment.apiUrl}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
         },
-      },
-    });
-    if (error) throw error;
-    if (!data.user) throw new Error('Supabase no devolvió el usuario registrado.');
+        body: JSON.stringify({ password }),
+      });
+    } catch {
+      throw new Error('No se pudo cambiar la contraseña. Inténtalo de nuevo.');
+    }
+    if (!response.ok) {
+      const body = await response.json().catch(() => null) as { error?: string } | null;
+      throw new Error(body?.error ?? 'No se pudo cambiar la contraseña. Inténtalo de nuevo.');
+    }
   }
 
   async signOut(): Promise<void> {

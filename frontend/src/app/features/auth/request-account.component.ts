@@ -11,7 +11,7 @@ import { AuthService } from '../../core/auth/auth.service';
     <section class="auth-layout" aria-labelledby="request-title">
       <div class="form-panel">
         <h1 id="request-title">Solicita tu cuenta</h1>
-        <p class="form-intro">Déjanos tus datos y te enviaremos un enlace para verificar tu correo.</p>
+        <p class="form-intro">Déjanos tus datos y el equipo de Dimotion revisará la solicitud para crear tu cuenta.</p>
         <form (ngSubmit)="submit()">
           <label>
             Cliente
@@ -22,16 +22,12 @@ import { AuthService } from '../../core/auth/auth.service';
             <input name="requesterName" type="text" [(ngModel)]="requesterName" required maxlength="120" autocomplete="name" placeholder="Nombre completo">
           </label>
           <label>
-            Nombre de usuario
-            <input name="username" type="text" [(ngModel)]="username" required maxlength="120" autocomplete="username" placeholder="Elige tu usuario para iniciar sesión">
-          </label>
-          <label>
             Correo electrónico
             <input name="email" type="email" [(ngModel)]="email" required autocomplete="email" placeholder="nombre@empresa.com">
           </label>
           <label>
-            Contraseña
-            <input name="password" type="password" [(ngModel)]="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+            Número de contacto
+            <input name="phone" type="tel" [(ngModel)]="phone" required minlength="7" maxlength="25" autocomplete="tel" placeholder="+57 300 123 4567">
           </label>
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
           @if (success()) { <p class="success" role="status">{{ success() }}</p> }
@@ -95,9 +91,8 @@ export class RequestAccountComponent {
   readonly submitting = signal(false);
   clientName = '';
   requesterName = '';
-  username = '';
   email = '';
-  password = '';
+  phone = '';
 
   async submit(): Promise<void> {
     this.error.set('');
@@ -108,11 +103,10 @@ export class RequestAccountComponent {
         this.email.trim(),
         this.clientName,
         this.requesterName,
-        this.username,
-        this.password,
+        this.phone,
       );
       this.success.set(
-        'Revisa tu correo y confirma la cuenta. Después, Dimotion debe activar el cliente y usuario para que puedas iniciar sesión.',
+        'Tu solicitud fue enviada a Dimotion. El equipo revisará tus datos y se pondrá en contacto contigo para completar la creación de la cuenta.',
       );
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'No fue posible enviar la solicitud.');

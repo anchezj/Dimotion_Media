@@ -3,6 +3,7 @@ import type { UserRole } from '../modules/users/user.types.js';
 import { env } from '../config/env.js';
 import { createSupabaseClient } from '../config/supabase.js';
 import { AppError } from './errors.js';
+import { throwSupabaseError } from '../modules/shared/supabase-request.js';
 
 declare global {
   namespace Express {
@@ -34,10 +35,10 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
 
     const { data: profile, error: profileError } = await supabase
       .from('usuarios')
-      .select('rol, is_active, cliente_id')
+      .select('rol, is_active, cliente_id, debe_cambiar_contrasena')
       .eq('id', user.id)
       .maybeSingle();
-    if (profileError) throw profileError;
+    if (profileError) throwSupabaseError(profileError);
     if (
       !profile?.is_active
       || (profile.rol !== 'admin' && profile.rol !== 'cliente')
@@ -45,8 +46,13 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
       next(new AppError(403, 'El perfil no tiene un rol autorizado.'));
       return;
     }
+    const isPasswordChangeRequest = req.baseUrl.endsWith('/auth') && req.path === '/change-password';
+    if (profile.debe_cambiar_contrasena && !isPasswordChangeRequest) {
+      next(new AppError(403, 'Debes cambiar tu contraseña antes de continuar.'));
+      return;
+    }
 
-    if (profile.rol === 'cliente') {
+    if (profile.rol === 'cliente' && !isPasswordChangeRequest) {
       if (!profile.cliente_id) {
         next(new AppError(403, 'El usuario no está asociado a un cliente activo.'));
         return;
@@ -56,7 +62,7 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
         .select('is_active')
         .eq('id', profile.cliente_id)
         .maybeSingle();
-      if (clientError) throw clientError;
+      if (clientError) throwSupabaseError(clientError);
       if (!client?.is_active) {
         next(new AppError(403, 'El cliente está inactivo.'));
         return;

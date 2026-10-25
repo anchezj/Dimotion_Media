@@ -9,6 +9,17 @@ export function getRequestSupabaseClient(req: Request) {
 }
 
 export function throwSupabaseError(error: { message: string; code?: string }): never {
+  if (
+    error.code === '42703'
+    || error.code === '42P01'
+    || error.code === 'PGRST204'
+    || error.code === 'PGRST205'
+  ) {
+    throw new AppError(
+      503,
+      'Falta actualizar el esquema de Supabase. Ejecuta supabase/setup.sql completo en el SQL Editor y vuelve a intentarlo.',
+    );
+  }
   if (error.code === '23505') {
     throw new AppError(409, 'Ya existe un registro con esos datos.');
   }
