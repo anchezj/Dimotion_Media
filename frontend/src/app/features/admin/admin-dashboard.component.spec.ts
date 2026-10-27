@@ -2,12 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
 import { ManagementDataService } from '../../core/data/management-data.service';
-import type { UserRecord } from '../../core/data/management-data.service';
+import type { CampaignRecord, UserRecord } from '../../core/data/management-data.service';
 import { AdminDashboardComponent } from './admin-dashboard.component';
 
 describe('AdminDashboardComponent', () => {
   const store = {
-    campaigns: signal([{
+    campaigns: signal<CampaignRecord[]>([{
       id: 'campaign-1',
       clientId: 'client-1',
       clientName: 'Carvajal',
@@ -18,6 +18,7 @@ describe('AdminDashboardComponent', () => {
       status: 'active' as const,
       observation: '',
       createdAt: '2030-08-01',
+      closedAt: null,
       stageDates: ['', ''],
       closedCampaigns: 2,
     }]),
@@ -57,6 +58,7 @@ describe('AdminDashboardComponent', () => {
       status: 'active',
       observation: '',
       createdAt: '2030-08-01',
+      closedAt: null,
       stageDates: ['', ''],
       closedCampaigns: 2,
     }]);
@@ -88,6 +90,37 @@ describe('AdminDashboardComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.admin-step').length).toBeGreaterThan(0);
     expect(fixture.nativeElement.querySelector('select[aria-label="Estado de Carvajal"]')).toBeTruthy();
     expect(store.loadAdminData).toHaveBeenCalled();
+  });
+
+  it('shows closed campaigns without a timeline and allows reopening them', async () => {
+    store.campaigns.set([{
+      id: 'closed-campaign',
+      clientId: 'client-1',
+      clientName: 'Carvajal',
+      title: 'Lanzamiento',
+      date: '2030-08-16',
+      time: '10:30',
+      stageIndex: 1,
+      status: 'closed',
+      observation: '',
+      createdAt: '2030-08-01',
+      closedAt: '2030-08-20T12:00:00.000Z',
+      stageDates: ['', ''],
+      closedCampaigns: 2,
+    }]);
+    const fixture = TestBed.createComponent(AdminDashboardComponent);
+    const component = fixture.componentInstance;
+    component.view.set('closedCampaigns');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.closed-campaign')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.admin-progress')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.closed-campaign-dates').textContent).toContain('Abierta:');
+    expect(fixture.nativeElement.querySelector('.closed-campaign-dates').textContent).toContain('Cerrada:');
+    fixture.nativeElement.querySelector('.closed-campaign button').click();
+    await fixture.whenStable();
+
+    expect(store.setCampaignStatus).toHaveBeenCalledWith('closed-campaign', 'active');
   });
 
   it('saves a new client through the remote data service', async () => {

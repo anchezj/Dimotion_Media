@@ -82,6 +82,7 @@ describe('ManagementDataService', () => {
       status: 'active',
       observation: '',
       createdAt: '2030-08-01',
+      closedAt: null,
       stageDates: ['2030-08-01'],
       closedCampaigns: 0,
     }]);

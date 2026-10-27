@@ -1,9 +1,6 @@
-import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { env } from '../../config/env.js';
 import { AppError } from '../../middleware/errors.js';
-
-const logoPath = fileURLToPath(new URL('../../../../frontend/public/dimotion-logo.png', import.meta.url));
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -77,7 +74,7 @@ export async function sendAccountRequestEmail(request: AccountRequest): Promise<
             <tr><td align="center">
               <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#fff;border-radius:12px;overflow:hidden">
                 <tr><td style="padding:28px 32px;background:#121212;text-align:center">
-                  <img src="cid:dimotion-logo" width="190" alt="Dimotion Media" style="display:block;width:190px;max-width:100%;height:auto;margin:0 auto">
+                  <img src="${env.frontendOrigin}/dimotion-logo.png" width="190" alt="Dimotion Media" style="display:block;width:190px;max-width:100%;height:auto;margin:0 auto">
                 </td></tr>
                 <tr><td style="padding:32px">
                   <h1 style="margin:0 0 12px;font-size:24px;color:#24211e">Nueva solicitud de cuenta</h1>
@@ -97,7 +94,6 @@ export async function sendAccountRequestEmail(request: AccountRequest): Promise<
         </body>
       </html>
     `,
-    attachments: [{ filename: 'dimotion-logo.png', path: logoPath, cid: 'dimotion-logo' }],
   });
 }
 
@@ -139,7 +135,7 @@ export async function sendClientCredentialsEmail(credentials: ClientCredentialsE
             <tr><td align="center">
               <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#fff;border-radius:12px;overflow:hidden">
                 <tr><td style="padding:28px 32px;background:#121212;text-align:center">
-                  <img src="cid:dimotion-logo" width="190" alt="Dimotion Media" style="display:block;width:190px;max-width:100%;height:auto;margin:0 auto">
+                  <img src="${env.frontendOrigin}/dimotion-logo.png" width="190" alt="Dimotion Media" style="display:block;width:190px;max-width:100%;height:auto;margin:0 auto">
                 </td></tr>
                 <tr><td style="padding:32px">
                   <h1 style="margin:0 0 12px;font-size:24px">Tu cuenta está lista</h1>
@@ -159,6 +155,5 @@ export async function sendClientCredentialsEmail(credentials: ClientCredentialsE
         </body>
       </html>
     `,
-    attachments: [{ filename: 'dimotion-logo.png', path: logoPath, cid: 'dimotion-logo' }],
   });
 }

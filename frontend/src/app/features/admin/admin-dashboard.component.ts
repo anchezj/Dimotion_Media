@@ -12,7 +12,7 @@ import {
 } from '../../core/data/management-data.service';
 import type { CampaignRecord, ClientRecord, UserRecord } from '../../core/data/management-data.service';
 
-type AdminView = 'campaigns' | 'clients' | 'users';
+type AdminView = 'campaigns' | 'closedCampaigns' | 'clients' | 'users';
 
 registerLocaleData(localeEsCo);
 
@@ -27,6 +27,7 @@ registerLocaleData(localeEsCo);
         <p class="sidebar-label">ADMINISTRACIÓN</p>
         <nav aria-label="Administración">
           <a routerLink="/admin/campanas" [class.active]="view() === 'campaigns'">Campañas</a>
+          <a routerLink="/admin/campanas-cerradas" [class.active]="view() === 'closedCampaigns'">Campañas cerradas</a>
           <a routerLink="/admin/clientes" [class.active]="view() === 'clients'">Clientes</a>
           <a routerLink="/admin/usuarios" [class.active]="view() === 'users'">Usuarios</a>
         </nav>
@@ -37,7 +38,7 @@ registerLocaleData(localeEsCo);
         <header class="admin-heading">
           <div>
             <p class="eyebrow">DIMOTION MEDIA · ADMIN</p>
-            <h1>{{ view() === 'campaigns' ? 'Campañas activas' : view() === 'clients' ? 'Clientes' : 'Usuarios' }}</h1>
+            <h1>{{ view() === 'campaigns' ? 'Campañas activas' : view() === 'closedCampaigns' ? 'Campañas cerradas' : view() === 'clients' ? 'Clientes' : 'Usuarios' }}</h1>
           </div>
           @if (view() === 'clients') {
             <button class="button button-primary" type="button" (click)="openCreateClient()">Nuevo cliente</button>
@@ -77,7 +78,7 @@ registerLocaleData(localeEsCo);
                   <select [value]="campaign.status" [attr.aria-label]="'Estado de ' + campaign.clientName" (change)="changeStatus(campaign.id, $event)">
                     <option value="active">Activa</option>
                     <option value="paused">En pausa</option>
-                    <option value="closed" disabled>Cerrada</option>
+                    <option value="closed">Cerrar campaña</option>
                   </select>
                 </div>
                 <input
@@ -119,6 +120,27 @@ registerLocaleData(localeEsCo);
               </article>
             } @empty {
               <p class="empty-state">No hay campañas que coincidan con la búsqueda.</p>
+            }
+          </section>
+        } @else if (view() === 'closedCampaigns') {
+          <label class="search-field">Buscar campaña o cliente
+            <input type="search" [ngModel]="campaignSearch()" (ngModelChange)="campaignSearch.set($event)" placeholder="Escribe para filtrar">
+          </label>
+          <section class="closed-campaign-list" aria-label="Campañas cerradas">
+            @for (campaign of filteredClosedCampaigns(); track campaign.id) {
+              <article class="closed-campaign">
+                <div class="campaign-client">
+                  <strong>{{ campaign.clientName }}</strong>
+                  <span>{{ campaign.title }}</span>
+                  <span class="closed-campaign-dates">
+                    Abierta: {{ campaign.createdAt | date:'d MMM y':'':'es-CO' }} ·
+                    Cerrada: {{ campaign.closedAt ? (campaign.closedAt | date:'d MMM y':'':'es-CO') : 'Fecha no disponible' }}
+                  </span>
+                </div>
+                <button class="button button-primary" type="button" (click)="reopenCampaign(campaign.id)">Abrir campaña</button>
+              </article>
+            } @empty {
+              <p class="empty-state">No hay campañas cerradas.</p>
             }
           </section>
         } @else if (view() === 'clients') {
@@ -245,7 +267,9 @@ registerLocaleData(localeEsCo);
     .user-status-filter { color:#aaa39b; display:grid; font-size:.75rem; gap:.4rem; margin:0 0 .8rem; max-width:290px; }
     .user-status-filter select { background:#100e0c; border:1px solid #342920; border-radius:.35rem; color:#f2f0ed; min-height:37px; padding:.55rem .7rem; }
     input:focus,select:focus { border-color:#dc790a; }
-    .campaign-table,.client-table { border:1px solid #30251c; border-radius:.55rem; overflow:hidden; }
+    .campaign-table,.client-table,.closed-campaign-list { border:1px solid #30251c; border-radius:.55rem; overflow:hidden; }
+    .closed-campaign { align-items:center; border-top:1px solid #30251c; display:flex; gap:1rem; justify-content:space-between; padding:1rem; }
+    .closed-campaign .campaign-client span { color:#aaa39b; font-size:.7rem; }
     .table-header { align-items:center; background:#0c0b0a; color:#b9ada1; display:grid; font-size:.62rem; grid-template-columns:1.1fr .9fr 1.5fr 1.5fr; letter-spacing:.1em; min-height:45px; padding:.6rem 1rem; }
     .campaign-row { border-top:1px solid #30251c; display:grid; gap:.7rem 1rem; grid-template-columns:1.1fr .9fr 1.5fr 1.5fr; padding:1rem; }
     .campaign-client { align-self:center; display:grid; gap:.35rem; }
@@ -309,7 +333,7 @@ registerLocaleData(localeEsCo);
       .sidebar { gap:.7rem; padding:1rem; }
       .brand { display:block; }
       .sidebar-label { display:none; }
-      .sidebar nav { grid-template-columns:repeat(3,1fr); }
+      .sidebar nav { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .logout { margin:0; padding:.5rem .9rem; }
       .admin-main { padding-top:1rem; }
       .admin-heading { justify-content:space-between; text-align:left; }
@@ -334,7 +358,15 @@ export class AdminDashboardComponent {
   readonly filteredCampaigns = computed(() => {
     const term = this.campaignSearch().toLocaleLowerCase().trim();
     return this.store.campaigns().filter((campaign) =>
-      !term || `${campaign.clientName} ${campaign.title}`.toLocaleLowerCase().includes(term),
+      campaign.status !== 'closed'
+      && (!term || `${campaign.clientName} ${campaign.title}`.toLocaleLowerCase().includes(term)),
+    );
+  });
+  readonly filteredClosedCampaigns = computed(() => {
+    const term = this.campaignSearch().toLocaleLowerCase().trim();
+    return this.store.campaigns().filter((campaign) =>
+      campaign.status === 'closed'
+      && (!term || `${campaign.clientName} ${campaign.title}`.toLocaleLowerCase().includes(term)),
     );
   });
   readonly filteredClients = computed(() => {
@@ -394,6 +426,10 @@ export class AdminDashboardComponent {
     if (value === 'active' || value === 'paused' || value === 'closed') {
       void this.mutate(() => this.store.setCampaignStatus(campaignId, value));
     }
+  }
+
+  reopenCampaign(campaignId: string): void {
+    void this.mutate(() => this.store.setCampaignStatus(campaignId, 'active'));
   }
 
   changeObservation(campaignId: string, event: Event): void {
@@ -490,6 +526,12 @@ export class AdminDashboardComponent {
 
   private setViewFromUrl(): void {
     const currentRoute = this.router.url.split(/[?#]/, 1)[0];
-    this.view.set(currentRoute.endsWith('/clientes') ? 'clients' : currentRoute.endsWith('/usuarios') ? 'users' : 'campaigns');
+    this.view.set(currentRoute.endsWith('/campanas-cerradas')
+      ? 'closedCampaigns'
+      : currentRoute.endsWith('/clientes')
+        ? 'clients'
+        : currentRoute.endsWith('/usuarios')
+          ? 'users'
+          : 'campaigns');
   }
 }

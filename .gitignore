@@ -10,6 +10,7 @@ backend/dist/
 frontend/.angular/
 coverage/
 .cache/
+.vercel/
 
 # Local configuration and secrets
 .env

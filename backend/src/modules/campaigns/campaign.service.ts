@@ -23,7 +23,7 @@ export const campaignService = {
     const { data, error } = await getRequestSupabaseClient(req)
       .from('campanas')
       .select(`
-        id, cliente_id, titulo, fecha, hora, etapa, estado, observaciones, created_at,
+        id, cliente_id, titulo, fecha, hora, etapa, estado, observaciones, created_at, closed_at,
         clientes!inner(nombre_cliente, campanas_cerradas),
         campana_etapas_historial(etapa, cambiado_en)
       `)
@@ -53,6 +53,7 @@ export const campaignService = {
         status: campaign.estado,
         observation: campaign.observaciones,
         createdAt: campaign.created_at,
+        closedAt: campaign.closed_at,
         stageDates,
       };
     });
@@ -103,6 +104,9 @@ export const campaignService = {
       if (input.stageIndex === stages.length - 1) update['estado'] = 'closed';
     }
     if (input.status !== undefined) update['estado'] = input.status;
+    const nextStatus = input.status ?? (input.stageIndex === stages.length - 1 ? 'closed' : undefined);
+    if (nextStatus === 'closed') update['closed_at'] = new Date().toISOString();
+    else if (nextStatus === 'active' || nextStatus === 'paused') update['closed_at'] = null;
     if (input.observation !== undefined) update['observaciones'] = input.observation;
     if (!Object.keys(update).length) throw new AppError(400, 'No hay cambios de campaña para guardar.');
 

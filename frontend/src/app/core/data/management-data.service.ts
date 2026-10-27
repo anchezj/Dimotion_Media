@@ -18,6 +18,7 @@ export interface CampaignRecord {
   status: CampaignStatus;
   observation: string;
   createdAt: string;
+  closedAt: string | null;
   stageDates: string[];
   closedCampaigns: number;
 }

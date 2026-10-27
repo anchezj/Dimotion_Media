@@ -278,6 +278,14 @@ create table if not exists public.campanas (
   updated_at timestamptz not null default now()
 );
 
+alter table public.campanas
+  add column if not exists closed_at timestamptz;
+
+update public.campanas
+set closed_at = updated_at
+where estado = 'closed'
+  and closed_at is null;
+
 create index if not exists campanas_cliente_fecha_idx
   on public.campanas (cliente_id, fecha, hora);
 
