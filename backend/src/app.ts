@@ -1,6 +1,6 @@
 import cors from 'cors';
 import express from 'express';
-import helmet from 'helmet';
+import { default as helmet } from 'helmet';
 import { env } from './config/env.js';
 import { apiRoutes } from './routes/api.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
