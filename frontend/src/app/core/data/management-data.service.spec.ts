@@ -35,14 +35,29 @@ describe('ManagementDataService', () => {
       id: 'remote-client',
       name: 'Carvajal',
       email: 'julian@example.com',
+      phone: '+573001234567',
+      username: 'julian',
       active: true,
       createdAt: '2030-08-01',
       closedCampaigns: 0,
     }]);
     http.expectOne(`${environment.apiUrl}/campaigns`).flush([]);
+    http.expectOne(`${environment.apiUrl}/clients/users`).flush([{
+      id: 'remote-user',
+      clientId: 'remote-client',
+      clientName: 'Carvajal',
+      phone: '+573001234567',
+      username: 'julian',
+      email: 'julian@example.com',
+      role: 'cliente',
+      active: true,
+      deleted: false,
+      createdAt: '2030-08-01',
+    }]);
     await loaded;
 
     expect(store.clients()[0].name).toBe('Carvajal');
+    expect(store.users()[0].username).toBe('julian');
     expect(store.campaigns()).toEqual([]);
   });
 
@@ -67,6 +82,7 @@ describe('ManagementDataService', () => {
       status: 'active',
       observation: '',
       createdAt: '2030-08-01',
+      closedAt: null,
       stageDates: ['2030-08-01'],
       closedCampaigns: 0,
     }]);

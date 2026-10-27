@@ -9,7 +9,7 @@ export const app = express();
 
 app.disable('x-powered-by');
 app.use(helmet());
-app.use(cors({ origin: env.frontendOrigin }));
+app.use(cors({ origin: env.frontendOrigins }));
 app.use(express.json({ limit: '1mb' }));
 app.use('/api', apiRoutes);
 app.use(notFoundHandler);

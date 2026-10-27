@@ -97,10 +97,98 @@ import { RouterLink } from '@angular/router';
       </section>
 
       <section class="pricing-section home-section" id="precios">
-        <p class="eyebrow">05 · PAQUETES Y PRECIOS</p>
-        <h2>Una buena historia<br>merece <em>verse bien.</em></h2>
-        <p>Cuéntanos qué tienes en mente y diseñamos una propuesta para las necesidades de tu marca.</p>
-        <a class="button button-primary" routerLink="/contacto">HABLEMOS DE TU PROYECTO ↗</a>
+        <div class="pricing-heading">
+          <div>
+            <p class="eyebrow">05 · PAQUETES DE CONTENIDO</p>
+            <h2>Un plan mensual para<br><em>sostener tu marca.</em></h2>
+          </div>
+          <p class="pricing-note">VALORES EN COP · MENSUAL</p>
+        </div>
+        <div class="pricing-cards" aria-label="Planes de contenido">
+          <article class="pricing-card">
+            <div class="pricing-card-heading">
+              <h3>Signature</h3>
+              <p>donde nace tu presencia.</p>
+            </div>
+            <ul>
+              <li><strong>Calidad visual premium</strong></li>
+              <li><strong>4 reels</strong><span>producción estándar</span></li>
+              <li><strong>Creación de guiones</strong></li>
+              <li><strong>Reunión mensual de análisis</strong></li>
+              <li><strong>Still de reels para stories</strong></li>
+            </ul>
+            <div class="pricing-card-footer">
+              <p class="price-label">INVERSIÓN MENSUAL</p>
+              <p class="price">$800.000</p>
+              <a class="button" routerLink="/contacto" [queryParams]="{ plan: 'Signature' }">QUIERO ESTE PLAN</a>
+            </div>
+          </article>
+
+          <article class="pricing-card featured">
+            <div class="pricing-card-heading">
+              <h3>Prestige</h3>
+              <span class="popular-badge">MÁS ELEGIDO</span>
+              <p>más que visible... memorable.</p>
+            </div>
+            <ul>
+              <li><strong>Calidad visual avanzada</strong></li>
+              <li><strong>8 reels</strong><span>grabación log + corrección de color/audio</span></li>
+              <li><strong>Guiones personalizados</strong></li>
+              <li><strong>Reunión mensual de análisis</strong></li>
+              <li><strong>4 carruseles</strong><span>contenido propio de la marca, no librerías</span></li>
+              <li><strong>Fotos para carrusel o stories</strong></li>
+              <li><strong>Producción y mejora de audio</strong></li>
+            </ul>
+            <div class="pricing-card-footer">
+              <p class="price-label">INVERSIÓN MENSUAL</p>
+              <p class="price">$1.500.000</p>
+              <a class="button" routerLink="/contacto" [queryParams]="{ plan: 'Prestige' }">QUIERO ESTE PLAN</a>
+            </div>
+          </article>
+
+          <article class="pricing-card">
+            <div class="pricing-card-heading">
+              <h3>Crown</h3>
+              <p>no compites, lideras.</p>
+            </div>
+            <ul>
+              <li><strong>Calidad visual cine</strong></li>
+              <li><strong>12 reels</strong><span>grabación log + corrección de color/audio</span></li>
+              <li><strong>Guiones con estructura</strong><span>hooks visuales</span></li>
+              <li><strong>Reunión mensual de análisis</strong></li>
+              <li><strong>4 carruseles</strong><span>contenido propio de la marca, no librerías</span></li>
+              <li><strong>Fotos para carrusel o stories</strong></li>
+              <li><strong>Diseño de portadas</strong></li>
+              <li><strong>Sugerencia de descripción para post</strong></li>
+              <li><strong>Equipos alta gama</strong><span>iluminación + estabilización + micrófonos</span></li>
+            </ul>
+            <div class="pricing-card-footer">
+              <p class="price-label">INVERSIÓN MENSUAL</p>
+              <p class="price">$2.500.000</p>
+              <a class="button" routerLink="/contacto" [queryParams]="{ plan: 'Crown' }">QUIERO ESTE PLAN</a>
+            </div>
+          </article>
+
+          <article class="pricing-card">
+            <div class="pricing-card-heading">
+              <h3>A medida</h3>
+              <p>tu marca, tus reglas.</p>
+            </div>
+            <ul>
+              <li><strong>Volumen de contenido flexible</strong><span>definimos cuántas piezas y de qué tipo</span></li>
+              <li><strong>Jornadas según tu operación</strong><span>una intensiva o varias en el mes</span></li>
+              <li><strong>Formatos que sí vas a usar</strong><span>reels, carruseles, fotos, video largo</span></li>
+              <li><strong>Campañas y lanzamientos</strong><span>producción puntual por proyecto</span></li>
+              <li><strong>Cobertura de eventos</strong></li>
+              <li><strong>Equipo y locación a la medida</strong><span>según lo que exija la idea</span></li>
+            </ul>
+            <div class="pricing-card-footer">
+              <p class="price-label">SEGÚN ALCANCE</p>
+              <p class="price">A cotizar</p>
+              <a class="button" routerLink="/contacto" [queryParams]="{ plan: 'A medida' }">COTIZAR A MEDIDA</a>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="industries-section home-section" id="industry">

@@ -18,6 +18,7 @@ export interface CampaignRecord {
   status: CampaignStatus;
   observation: string;
   createdAt: string;
+  closedAt: string | null;
   stageDates: string[];
   closedCampaigns: number;
 }
@@ -26,9 +27,24 @@ export interface ClientRecord {
   id: string;
   name: string;
   email: string;
+  phone: string;
+  username: string;
   active: boolean;
   createdAt: string;
   closedCampaigns: number;
+}
+
+export interface UserRecord {
+  id: string;
+  clientId: string | null;
+  clientName: string;
+  phone: string;
+  username: string;
+  email: string;
+  role: 'admin' | 'cliente';
+  active: boolean;
+  deleted: boolean;
+  createdAt: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +52,7 @@ export class ManagementDataService {
   private readonly http = inject(HttpClient);
   readonly campaigns = signal<CampaignRecord[]>([]);
   readonly clients = signal<ClientRecord[]>([]);
+  readonly users = signal<UserRecord[]>([]);
   readonly storageError = signal('');
   readonly currentClient = signal<ClientRecord | null>(null);
 
@@ -46,12 +63,14 @@ export class ManagementDataService {
   async loadAdminData(): Promise<void> {
     this.storageError.set('');
     try {
-      const [clients, campaigns] = await Promise.all([
+      const [clients, campaigns, users] = await Promise.all([
         firstValueFrom(this.http.get<ClientRecord[]>(`${environment.apiUrl}/clients`)),
         firstValueFrom(this.http.get<CampaignRecord[]>(`${environment.apiUrl}/campaigns`)),
+        firstValueFrom(this.http.get<UserRecord[]>(`${environment.apiUrl}/clients/users`)),
       ]);
       this.clients.set(clients);
       this.campaigns.set(campaigns);
+      this.users.set(users);
     } catch (error) {
       this.setRequestError(error);
       throw error;
@@ -108,7 +127,7 @@ export class ManagementDataService {
     await this.reloadAdminData();
   }
 
-  async createClient(input: Pick<ClientRecord, 'name' | 'email'>): Promise<void> {
+  async createClient(input: Pick<ClientRecord, 'name' | 'email' | 'phone'> & { username: string }): Promise<void> {
     await this.request(
       this.http.post(`${environment.apiUrl}/clients`, input),
       'No se pudo crear el cliente en Supabase.',
@@ -116,7 +135,7 @@ export class ManagementDataService {
     await this.reloadAdminData();
   }
 
-  async updateClient(clientId: string, input: Pick<ClientRecord, 'name' | 'email'>): Promise<void> {
+  async updateClient(clientId: string, input: Pick<ClientRecord, 'name' | 'email' | 'phone'> & { username?: string }): Promise<void> {
     await this.request(
       this.http.patch(`${environment.apiUrl}/clients/${clientId}`, input),
       'No se pudo actualizar el cliente en Supabase.',
@@ -128,6 +147,23 @@ export class ManagementDataService {
     await this.request(
       this.http.patch(`${environment.apiUrl}/clients/${client.id}/active`, { active: !client.active }),
       'No se pudo cambiar el estado del cliente.',
+    );
+    await this.reloadAdminData();
+  }
+
+  async setUserActive(user: UserRecord, active: boolean): Promise<void> {
+    if (!user.clientId) return;
+    await this.request(
+      this.http.patch(`${environment.apiUrl}/clients/${user.clientId}/active`, { active }),
+      'No se pudo cambiar el estado del usuario.',
+    );
+    await this.reloadAdminData();
+  }
+
+  async restoreClient(clientId: string): Promise<void> {
+    await this.request(
+      this.http.patch(`${environment.apiUrl}/clients/${clientId}/restore`, {}),
+      'No se pudo restaurar el cliente.',
     );
     await this.reloadAdminData();
   }

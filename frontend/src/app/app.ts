@@ -25,7 +25,7 @@ export class App {
 
   private isAuthRoute(url: string): boolean {
     const path = url.split(/[?#]/, 1)[0];
-    return path === '/login' || path === '/solicitar-cuenta'
+    return path === '/login' || path === '/solicitar-cuenta' || path === '/cambiar-contrasena'
       || path.startsWith('/cliente') || path.startsWith('/admin');
   }
 }
