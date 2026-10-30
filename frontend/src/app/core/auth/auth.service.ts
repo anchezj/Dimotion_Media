@@ -143,6 +143,24 @@ export class AuthService {
       const body = await response.json().catch(() => null) as { error?: string } | null;
       throw new Error(body?.error ?? 'No se pudo cambiar la contraseña. Inténtalo de nuevo.');
     }
+
+    const email = session.user.email;
+    if (!email) {
+      throw new Error('La contraseña se actualizó, pero no fue posible renovar la sesión. Inicia sesión con tu nueva contraseña.');
+    }
+
+    const supabase = this.getSupabase();
+    if (!supabase) {
+      throw new Error('La contraseña se actualizó, pero no fue posible renovar la sesión. Inicia sesión con tu nueva contraseña.');
+    }
+
+    const { error: signInError } = await (await supabase).auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError) {
+      throw new Error('La contraseña se actualizó, pero no fue posible renovar la sesión. Inicia sesión con tu nueva contraseña.');
+    }
   }
 
   async signOut(): Promise<void> {
