@@ -15,7 +15,7 @@ import { RouterLink } from '@angular/router';
         <a href="/#servicios">Servicios</a>
         <a href="/#metodo">Método</a>
         <a href="/#precios">Precios</a>
-        <a href="/#ug">UG</a>
+        <a href="/#ug">UGC</a>
         <a href="/#industry">Industry</a>
         <a class="login-link" routerLink="/login">Iniciar sesión</a>
       </nav>

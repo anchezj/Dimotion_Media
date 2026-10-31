@@ -1,10 +1,11 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, QueryList, ViewChildren, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-site-home',
   standalone: true,
-  imports: [RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     <div class="home-page">
       <section class="home-hero">
@@ -56,19 +57,81 @@ import { RouterLink } from '@angular/router';
       </section>
 
       <section class="trust-section" aria-labelledby="trust-title">
-        <div class="section-kicker" id="trust-title">CONFÍAN EN NOSOTROS <span></span></div>
-        <img class="client-logos" src="/dimotion-clientes.png" alt="Marcas que confían en Dimotion">
+        <div class="section-kicker" id="trust-title"><span>CONFÍAN EN NOSOTROS</span><span></span></div>
+        <div class="client-logos" aria-label="Algunas marcas que confían en Dimotion">
+          <div class="client-logo rosa-negra"><span>Rosa<br>Negra</span></div>
+          <div class="client-logo mvc"><span>MVC</span><small>AGENCY</small></div>
+          <div class="client-logo nbc"><span>NBCUniversal</span></div>
+          <div class="client-logo rigoletto"><span>RIGOLETTO</span></div>
+          <div class="client-logo buffalo"><span>BUFFALO WINGS</span><small>COLOMBIA</small></div>
+        </div>
       </section>
 
       <section class="work-section home-section" id="trabajo">
-        <div class="section-heading">
-          <div><p class="eyebrow">02 · NUESTRO TRABAJO</p><h2>LO QUE HACEMOS<br><em>se ve.</em></h2></div>
-          <p>Historias reales. Marcas reales. Contenido que conecta.<br>Una selección de proyectos, campañas, fotografías y piezas audiovisuales producidas por Dimotion.</p>
+        <div class="work-heading">
+          <div class="work-intro">
+            <p class="eyebrow">02 · NUESTRO TRABAJO</p>
+            <h2>LO QUE HACEMOS<br><em>se ve.</em></h2>
+            <p><strong>Historias reales. Marcas reales. Contenido que conecta.</strong><br>Una selección de proyectos, campañas, fotografías y piezas audiovisuales producidas por Dimotion.</p>
+          </div>
+          <div class="service-tags" aria-label="Tipos de contenido">
+            <span>VIDEO COMERCIAL</span><span>CONTENIDO PARA REDES</span><span>CAMPAÑAS</span><span>FOTOGRAFÍA</span><span>PRODUCCIÓN</span>
+          </div>
         </div>
-        <div class="work-feature">
-          <img src="/dimotion-reels.png" alt="Producciones de video y contenido para redes sociales">
+        <div class="work-reels" aria-label="Videos destacados">
+          @for (project of videoProjects; track project.id; let index = $index) {
+            <article class="work-reel" [class.reel-featured]="index === 2">
+              <button
+                class="reel-poster"
+                [class.is-playing]="activeVideoId() === project.id"
+                type="button"
+                [attr.aria-label]="'Reproducir video: ' + project.title"
+                (click)="playProject(project, index)"
+              >
+                <img class="reel-cover" [src]="project.posterPath" alt="">
+                <span class="reel-topbar" aria-hidden="true">
+                  <span class="reel-back">‹</span>
+                  <strong>Reels</strong>
+                  <svg viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+                </span>
+                <span class="reel-side-actions" aria-hidden="true">
+                  <span><svg viewBox="0 0 24 24"><path d="M20.8 8.8c0 4.2-8.8 10-8.8 10S3.2 13 3.2 8.8a4.5 4.5 0 0 1 8.8-1.3 4.5 4.5 0 0 1 8.8 1.3Z"></path></svg><small>3.9 mil</small></span>
+                  <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.8 8.4 9 9 0 0 1-3.5-.7L3 21l1.8-4.9a8 8 0 0 1-1.5-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"></path></svg><small>74</small></span>
+                  <span><svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg><small>Enviar</small></span>
+                  <span class="reel-more">•••</span>
+                </span>
+                <span class="reel-play" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                </span>
+                <span class="reel-bottom">
+                  <span class="reel-account">
+                    <span class="reel-avatar">D</span>
+                    <strong>dimotion.media</strong>
+                    <span class="reel-follow">Seguir</span>
+                  </span>
+                  <span class="reel-caption">{{ project.caption }}</span>
+                  <span class="reel-audio"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></span>
+                </span>
+                <span class="reel-progress" aria-hidden="true"><span></span></span>
+              </button>
+              <video
+                #workVideo
+                class="work-video"
+                [class.is-visible]="activeVideoId() === project.id"
+                controls
+                playsinline
+                preload="none"
+                [attr.aria-label]="'Reproducción de ' + project.title"
+                (error)="handleVideoError(project)"
+                (ended)="finishProject(project)"
+              ></video>
+              @if (videoErrorId() === project.id) {
+                <p class="video-error" role="status">Agrega el archivo <code>{{ project.videoPath }}</code> para activar este video.</p>
+              }
+            </article>
+          }
         </div>
-        <div class="service-tags"><span>VIDEO COMERCIAL</span><span>CONTENIDO PARA REDES</span><span>CAMPAÑAS</span><span>FOTOGRAFÍA</span><span>PRODUCCIÓN</span></div>
+        <p class="reel-hint"><span aria-hidden="true">▶</span> Selecciona un proyecto para reproducirlo</p>
       </section>
 
       <section class="services-section home-section" id="servicios">
@@ -191,8 +254,109 @@ import { RouterLink } from '@angular/router';
         </div>
       </section>
 
+      <section class="ugc-section" id="ug">
+        <div class="ugc-intro home-section">
+          <div class="ugc-copy">
+            <p class="eyebrow"><span></span> UGC · USER GENERATED CONTENT</p>
+            <h2>PERSONAS<br>REALES.<br><em>Contenido que conecta.</em></h2>
+            <p class="ugc-description">Creamos contenido auténtico con creadoras que conectan con tu audiencia. Historias cercanas, hechas para mostrar lo mejor de tu marca.</p>
+            <div class="ugc-brand-callout">
+              <span>PARA MARCAS</span>
+              <p>Encuentra la creadora ideal para contar tu historia.</p>
+            </div>
+            <div class="ugc-actions">
+              <a class="button button-primary" href="https://wa.me/573242340823?text=Hola%20Dimotion%2C%20quiero%20encontrar%20una%20creadora%20UGC%20para%20mi%20marca." target="_blank" rel="noopener noreferrer">QUIERO UNA CREADORA <span aria-hidden="true">↗</span></a>
+              <a class="button button-secondary" href="#casting">QUIERO SER CREADORA</a>
+            </div>
+          </div>
+          <div class="ugc-visual">
+            <img src="/dimotion-reels.png" alt="Personas reales creando contenido para marcas con Dimotion">
+            <span class="ugc-image-caption">Historias reales. Marcas reales.</span>
+          </div>
+        </div>
+
+        <section class="casting-section home-section" id="casting" aria-labelledby="casting-title">
+          <div class="casting-heading">
+            <p class="eyebrow"><span></span> CASTING UGC</p>
+            <h2 id="casting-title">Buscamos<br><em>nuevas creadoras.</em></h2>
+            <p>Queremos conocerte. Si disfrutas comunicar y crear contenido, este espacio también es para ti.</p>
+            <ul class="casting-criteria">
+              <li>Mayores de edad</li>
+              <li>Buena comunicación frente a cámara</li>
+              <li>Personalidad auténtica</li>
+              <li>Disponibilidad para grabar</li>
+              <li>Diferentes perfiles y nichos</li>
+            </ul>
+          </div>
+
+          <form class="casting-form" #castingApplication="ngForm" (ngSubmit)="applyToCasting()">
+            <div class="casting-form-heading">
+              <h3>Cuéntanos sobre ti</h3>
+              <p>Completa tus datos y te contactaremos por WhatsApp.</p>
+            </div>
+            <div class="casting-fields">
+              <label>
+                <span>Nombre completo</span>
+                <input name="name" [(ngModel)]="creatorApplication.name" required maxlength="120" autocomplete="name" placeholder="Tu nombre">
+              </label>
+              <label>
+                <span>Ciudad</span>
+                <input name="city" [(ngModel)]="creatorApplication.city" required maxlength="100" autocomplete="address-level2" placeholder="¿Dónde vives?">
+              </label>
+              <label>
+                <span>Edad</span>
+                <input name="age" [(ngModel)]="creatorApplication.age" type="number" min="18" max="99" required placeholder="Debes ser mayor de edad">
+              </label>
+              <label>
+                <span>Instagram o TikTok</span>
+                <input name="social" [(ngModel)]="creatorApplication.social" required maxlength="160" placeholder="@tuusuario o enlace">
+              </label>
+              <label class="casting-field-wide">
+                <span>Categorías o nichos que te representan</span>
+                <input name="niches" [(ngModel)]="creatorApplication.niches" required maxlength="240" placeholder="Ej. belleza, moda, gastronomía, lifestyle">
+              </label>
+              <label>
+                <span>¿Tienes experiencia creando UGC?</span>
+                <select name="experience" [(ngModel)]="creatorApplication.experience" required>
+                  <option value="" disabled>Selecciona una opción</option>
+                  <option value="Sí">Sí</option>
+                  <option value="Aún no, pero quiero empezar">Aún no, pero quiero empezar</option>
+                </select>
+              </label>
+              <label>
+                <span>¿Tienes equipo propio para grabar?</span>
+                <select name="equipment" [(ngModel)]="creatorApplication.equipment" required>
+                  <option value="" disabled>Selecciona una opción</option>
+                  <option value="Sí">Sí</option>
+                  <option value="No">No</option>
+                </select>
+              </label>
+              <label>
+                <span>Disponibilidad</span>
+                <select name="availability" [(ngModel)]="creatorApplication.availability" required>
+                  <option value="" disabled>Selecciona una opción</option>
+                  <option value="Entre semana">Entre semana</option>
+                  <option value="Fines de semana">Fines de semana</option>
+                  <option value="Flexible">Flexible</option>
+                </select>
+              </label>
+              <label>
+                <span>Enlace a video de presentación <small>(opcional)</small></span>
+                <input name="videoLink" [(ngModel)]="creatorApplication.videoLink" type="url" maxlength="500" placeholder="https://">
+              </label>
+              <label>
+                <span>Enlace a tus fotografías <small>(opcional)</small></span>
+                <input name="photoLink" [(ngModel)]="creatorApplication.photoLink" type="url" maxlength="500" placeholder="https://">
+              </label>
+            </div>
+            <p class="casting-upload-note">También puedes adjuntar tu video y tus fotografías directamente en el chat de WhatsApp.</p>
+            <button class="button button-primary casting-submit" type="submit" [disabled]="castingApplication.invalid">POSTULARME AL CASTING <span aria-hidden="true">↗</span></button>
+          </form>
+        </section>
+      </section>
+
       <section class="industries-section home-section" id="industry">
-        <div id="ug"><p class="eyebrow">06 · UG / INDUSTRY</p><h2>Contenido con<br><em>intención.</em></h2></div>
+        <div><p class="eyebrow">INDUSTRY</p><h2>Contenido con<br><em>intención.</em></h2></div>
         <p>Trabajamos con marcas, equipos y creadores para contar historias que se sienten auténticas y se recuerdan.</p>
         <a class="button button-secondary" routerLink="/contacto">TRABAJEMOS JUNTOS ↗</a>
       </section>
@@ -220,6 +384,84 @@ import { RouterLink } from '@angular/router';
 export class SiteHomeComponent {
   readonly pointerX = signal(0);
   readonly pointerY = signal(0);
+  readonly activeVideoId = signal<string | null>(null);
+  readonly videoErrorId = signal<string | null>(null);
+  readonly videoProjects = [
+    { id: 'reel-01', title: 'Historias de marca', category: 'VIDEO COMERCIAL', caption: 'Detrás de cámaras · producción.', videoPath: '/videos/0824.mp4', posterPath: '/videos/0824-poster.jpg' },
+    { id: 'reel-02', title: 'Momentos que conectan', category: 'CONTENIDO PARA REDES', caption: 'Dirección creativa en set.', videoPath: '/videos/0824-1.mp4', posterPath: '/videos/0824-1-poster.jpg' },
+    { id: 'reel-03', title: 'Una idea en movimiento', category: 'CAMPAÑAS', caption: 'Contenido que hace que tu marca se vea y se recuerde.', videoPath: '/videos/0824-2.mp4', posterPath: '/videos/0824-2-poster.jpg' },
+    { id: 'reel-04', title: 'Detalles que inspiran', category: 'FOTOGRAFÍA', caption: 'Edición para redes.', videoPath: '/videos/0824-3.mp4', posterPath: '/videos/0824-3-poster.jpg' },
+    { id: 'reel-05', title: 'Hecho para recordar', category: 'PRODUCCIÓN', caption: 'Campaña de marca.', videoPath: '/videos/0824-4.mp4', posterPath: '/videos/0824-4-poster.jpg' },
+  ];
+  readonly creatorApplication = {
+    name: '',
+    city: '',
+    age: null as number | null,
+    social: '',
+    niches: '',
+    experience: '',
+    equipment: '',
+    availability: '',
+    videoLink: '',
+    photoLink: '',
+  };
+
+  @ViewChildren('workVideo') private workVideos!: QueryList<ElementRef<HTMLVideoElement>>;
+
+  playProject(project: (typeof this.videoProjects)[number], index: number): void {
+    for (const reference of this.workVideos) {
+      const video = reference.nativeElement;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+
+    const video = this.workVideos.get(index)?.nativeElement;
+    this.videoErrorId.set(null);
+    this.activeVideoId.set(project.id);
+
+    if (!video) {
+      this.handleVideoError(project);
+      return;
+    }
+
+    video.src = project.videoPath;
+    video.load();
+    void video.play().catch(() => this.handleVideoError(project));
+  }
+
+  handleVideoError(project: (typeof this.videoProjects)[number]): void {
+    if (this.activeVideoId() !== project.id) return;
+    this.activeVideoId.set(null);
+    this.videoErrorId.set(project.id);
+  }
+
+  finishProject(project: (typeof this.videoProjects)[number]): void {
+    if (this.activeVideoId() === project.id) this.activeVideoId.set(null);
+  }
+
+  applyToCasting(): void {
+    const application = this.creatorApplication;
+    const message = [
+      'Hola Dimotion, quiero postularme al casting UGC.',
+      `Nombre: ${application.name}`,
+      `Ciudad: ${application.city}`,
+      `Edad: ${application.age}`,
+      `Instagram o TikTok: ${application.social}`,
+      `Categorías o nichos: ${application.niches}`,
+      `Experiencia creando UGC: ${application.experience}`,
+      `Equipo propio: ${application.equipment}`,
+      `Disponibilidad: ${application.availability}`,
+      `Video de presentación: ${application.videoLink || 'Lo adjuntaré en este chat.'}`,
+      `Fotografías: ${application.photoLink || 'Las adjuntaré en este chat.'}`,
+    ].join('\n');
+
+    globalThis.open(
+      `https://wa.me/573242340823?text=${encodeURIComponent(message)}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
 
   @HostListener('window:pointermove', ['$event'])
   onPointerMove(event: PointerEvent): void {
