@@ -79,7 +79,8 @@ export class AuthService {
     return data?.debe_cambiar_contrasena ?? false;
   }
 
-  async signIn(email: string, password: string): Promise<void> {
+  async signIn(email: string, password: string, captchaToken: string): Promise<void> {
+    if (!captchaToken) throw new Error('Completa la verificación de seguridad antes de iniciar sesión.');
     if (!this.isConfigured()) {
       globalThis.localStorage.removeItem(legacyDemoSessionKey);
       throw new Error('Configura la URL y la clave pública de Supabase para iniciar sesión.');
@@ -92,6 +93,7 @@ export class AuthService {
     const { error } = await (await clientPromise).auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
+      options: { captchaToken },
     });
     if (error) throw error;
   }
@@ -123,7 +125,8 @@ export class AuthService {
     }
   }
 
-  async changePassword(password: string): Promise<void> {
+  async changePassword(password: string, captchaToken: string): Promise<void> {
+    if (!captchaToken) throw new Error('Completa la verificación de seguridad antes de continuar.');
     const session = await this.getSession();
     if (!session?.access_token) throw new Error('Tu sesión expiró. Inicia sesión nuevamente.');
     let response: Response;
@@ -157,6 +160,7 @@ export class AuthService {
     const { error: signInError } = await (await supabase).auth.signInWithPassword({
       email,
       password,
+      options: { captchaToken },
     });
     if (signInError) {
       throw new Error('La contraseña se actualizó, pero no fue posible renovar la sesión. Inicia sesión con tu nueva contraseña.');

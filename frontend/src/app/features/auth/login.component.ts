@@ -1,12 +1,14 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { TurnstileWidgetComponent } from '../../shared/components/turnstile-widget.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TurnstileWidgetComponent],
   template: `
     <section class="auth-layout" aria-labelledby="login-title">
       <div class="brand-panel">
@@ -33,8 +35,12 @@ import { AuthService } from '../../core/auth/auth.service';
             Contraseña
             <input name="password" type="password" [(ngModel)]="password" required autocomplete="current-password" placeholder="Contraseña">
           </label>
+          <app-turnstile-widget
+            [siteKey]="turnstileSiteKey"
+            (tokenChange)="captchaToken.set($event)"
+          />
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-          <button type="submit" [disabled]="submitting()">
+          <button type="submit" [disabled]="submitting() || !captchaToken()">
             {{ submitting() ? 'INGRESANDO…' : 'INICIAR SESIÓN' }}
           </button>
         </form>
@@ -83,6 +89,9 @@ export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
   readonly error = signal('');
   readonly submitting = signal(false);
+  readonly captchaToken = signal<string | null>(null);
+  readonly turnstileSiteKey = environment.turnstileSiteKey;
+  @ViewChild(TurnstileWidgetComponent) private captchaWidget?: TurnstileWidgetComponent;
   client = '';
   email = '';
   password = '';
@@ -93,9 +102,14 @@ export class LoginComponent {
       this.error.set('Ingresa el correo completo, incluyendo @ y el dominio.');
       return;
     }
+    const captchaToken = this.captchaToken();
+    if (!captchaToken) {
+      this.error.set('Completa la verificación de seguridad antes de iniciar sesión.');
+      return;
+    }
     this.submitting.set(true);
     try {
-      await this.auth.signIn(this.email.trim(), this.password);
+      await this.auth.signIn(this.email.trim(), this.password, captchaToken);
       const role = await this.auth.getRole(this.client.trim());
       if (!role) {
         await this.auth.signOut();
@@ -110,8 +124,14 @@ export class LoginComponent {
       await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'No fue posible iniciar sesión.');
+      this.resetCaptcha();
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  private resetCaptcha(): void {
+    this.captchaToken.set(null);
+    this.captchaWidget?.reset();
   }
 }

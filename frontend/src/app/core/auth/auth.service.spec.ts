@@ -49,9 +49,33 @@ describe('AuthService without Supabase configuration', () => {
   });
 
   it('requires Supabase to sign in', async () => {
-    await expect(auth.signIn('user@example.com', 'password')).rejects.toThrow(
+    await expect(auth.signIn('user@example.com', 'password', 'captcha-token')).rejects.toThrow(
       'Configura la URL y la clave pública de Supabase para iniciar sesión.',
     );
+  });
+
+  it('does not attempt to sign in without a CAPTCHA token', async () => {
+    await expect(auth.signIn('user@example.com', 'password', '')).rejects.toThrow(
+      'Completa la verificación de seguridad antes de iniciar sesión.',
+    );
+    expect(supabaseMocks.createClient).not.toHaveBeenCalled();
+  });
+
+  it('passes the Turnstile token to Supabase before signing in', async () => {
+    environment.supabaseUrl = 'https://example.supabase.co';
+    environment.supabaseAnonKey = 'public-key';
+    supabaseMocks.signInWithPassword.mockResolvedValue({ error: null });
+    supabaseMocks.createClient.mockReturnValue({
+      auth: { signInWithPassword: supabaseMocks.signInWithPassword },
+    });
+
+    await auth.signIn(' User@Example.com ', 'password', 'turnstile-token');
+
+    expect(supabaseMocks.signInWithPassword).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'password',
+      options: { captchaToken: 'turnstile-token' },
+    });
   });
 
   it('renews the Supabase session with the new password after the backend updates it', async () => {
@@ -72,7 +96,7 @@ describe('AuthService without Supabase configuration', () => {
     const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetch);
 
-    await auth.changePassword('a-secure-new-password');
+    await auth.changePassword('a-secure-new-password', 'turnstile-token');
 
     expect(fetch).toHaveBeenCalledWith(
       `${environment.apiUrl}/auth/change-password`,
@@ -83,6 +107,7 @@ describe('AuthService without Supabase configuration', () => {
     expect(supabaseMocks.signInWithPassword).toHaveBeenCalledWith({
       email: 'client@example.com',
       password: 'a-secure-new-password',
+      options: { captchaToken: 'turnstile-token' },
     });
   });
 });

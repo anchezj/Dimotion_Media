@@ -1,12 +1,14 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { TurnstileWidgetComponent } from '../../shared/components/turnstile-widget.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-change-password',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, TurnstileWidgetComponent],
   template: `
     <main class="password-page">
       <form class="password-form" (ngSubmit)="submit()">
@@ -21,8 +23,12 @@ import { AuthService } from '../../core/auth/auth.service';
           Confirma tu contraseña
           <input name="confirmation" type="password" [(ngModel)]="confirmation" required minlength="12" autocomplete="new-password">
         </label>
+        <app-turnstile-widget
+          [siteKey]="turnstileSiteKey"
+          (tokenChange)="captchaToken.set($event)"
+        />
         @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-        <button type="submit" [disabled]="submitting()">
+        <button type="submit" [disabled]="submitting() || !captchaToken()">
           {{ submitting() ? 'ACTUALIZANDO…' : 'CAMBIAR CONTRASEÑA' }}
         </button>
       </form>
@@ -48,6 +54,9 @@ export class ChangePasswordComponent {
   private readonly router = inject(Router);
   readonly error = signal('');
   readonly submitting = signal(false);
+  readonly captchaToken = signal<string | null>(null);
+  readonly turnstileSiteKey = environment.turnstileSiteKey;
+  @ViewChild(TurnstileWidgetComponent) private captchaWidget?: TurnstileWidgetComponent;
   password = '';
   confirmation = '';
 
@@ -61,16 +70,28 @@ export class ChangePasswordComponent {
       this.error.set('Las contraseñas no coinciden.');
       return;
     }
+    const captchaToken = this.captchaToken();
+    if (!captchaToken) {
+      this.error.set('Completa la verificación de seguridad antes de continuar.');
+      return;
+    }
 
     this.submitting.set(true);
     try {
-      await this.auth.changePassword(this.password);
+      await this.auth.changePassword(this.password, captchaToken);
+      this.resetCaptcha();
       const role = await this.auth.getRole();
       await this.router.navigateByUrl(role === 'admin' ? '/admin/campanas' : '/cliente');
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'No fue posible actualizar la contraseña.');
+      this.resetCaptcha();
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  private resetCaptcha(): void {
+    this.captchaToken.set(null);
+    this.captchaWidget?.reset();
   }
 }
